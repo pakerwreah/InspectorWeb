@@ -1,0 +1,38 @@
+<template>
+    <splitpanes class="default-theme" style="height: 100%">
+        <pane size="20" min-size="20" max-size="40">
+            <!-- TODO -->
+        </pane>
+        <pane size="80">
+            <HelloWorld />
+        </pane>
+    </splitpanes>
+</template>
+
+<script>
+    import HelloWorld from './HelloWorld'
+    import { Splitpanes, Pane } from 'splitpanes'
+    import 'splitpanes/dist/splitpanes.css'
+
+    export default {
+        name: 'Database',
+        components: { Splitpanes, Pane, HelloWorld }
+    }
+</script>
+
+<style lang="scss">
+    .theme--dark {
+        .splitpanes.default-theme {
+
+            .splitpanes__pane {
+                background-color: unset;
+            }
+
+            .splitpanes__splitter {
+                border-left: none;
+                background-color: var(--v-secondary-base);
+            }
+
+        }
+    }
+</style>

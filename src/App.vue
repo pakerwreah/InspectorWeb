@@ -2,7 +2,7 @@
     <div id="app">
         <v-app>
             <v-content>
-                <v-stepper class="fill-height" v-model="current_page" non-linear>
+                <v-stepper v-model="current_page" non-linear>
                     <v-stepper-header>
                         <v-stepper-step v-for="page in Pages" :key="page.key" :step="page.key"
                                         :complete="current_page === page.key"
@@ -14,17 +14,15 @@
                         <label style="cursor: pointer; display: flex">
                             <v-flex align-self-center px-3>
                                 <v-icon>{{ icon_dark_mode }}</v-icon>
-                                <v-switch v-show="false" v-model="$vuetify.theme.dark" />
+                                <v-switch v-show="false" v-model="dark_mode" />
                             </v-flex>
                         </label>
                     </v-stepper-header>
 
                     <v-stepper-items>
                         <v-stepper-content :step="Pages.Database.key">
-                            <HelloWorld />
+                            <Database />
                         </v-stepper-content>
-                    </v-stepper-items>
-                    <v-stepper-items>
                         <v-stepper-content :step="Pages.Network.key">
                             ¯\_(ツ)_/¯
                         </v-stepper-content>
@@ -40,7 +38,7 @@
 </template>
 
 <script>
-    import HelloWorld from './views/HelloWorld'
+    import Database from './views/Database'
 
     const Pages = {
         Database: { key: 1, text: 'Database' },
@@ -50,7 +48,7 @@
     export default {
         name: 'App',
         components: {
-            HelloWorld
+            Database
         },
         data: () => ({
             current_page: Pages.Database.key
@@ -59,7 +57,22 @@
             Pages: () => Pages,
             icon_dark_mode () {
                 return this.$vuetify.theme.dark ? 'mdi-white-balance-sunny' : 'mdi-weather-night'
+            },
+            theme () {
+                return this.$vuetify.theme
+            },
+            dark_mode: {
+                get () {
+                    return this.theme.dark
+                },
+                set (val) {
+                    this.theme.dark = val
+                    localStorage.setItem('dark', JSON.stringify(val))
+                }
             }
+        },
+        beforeMount () {
+            this.theme.dark = JSON.parse(localStorage.getItem('dark'))
         }
     }
 </script>
@@ -68,9 +81,12 @@
     @import "styles/application";
 
     #app {
+        .v-stepper {
+            border-radius: 0;
+        }
+
         .v-stepper__step {
             padding: 0 20px;
-            height: 100%;
         }
         .v-stepper__step--active {
             border-bottom: solid 2px var(--v-primary-base);
@@ -82,9 +98,14 @@
             justify-content: flex-start;
             height: 40px;
         }
-
         .v-stepper__label {
             display: flex !important;
+        }
+        .v-stepper__content {
+            padding: 0;
+        }
+        .v-stepper, .v-stepper__items, .v-stepper__content, .v-stepper__wrapper {
+            height: 100%;
         }
     }
 </style>

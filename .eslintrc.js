@@ -8,7 +8,8 @@ module.exports = {
     '@vue/standard'
   ],
   plugins: [
-    'vuetify'
+    'vuetify',
+    'only-warn'
   ],
   rules: {
     'no-console': ['error', { allow: ['info', 'warn', 'error'] }],
