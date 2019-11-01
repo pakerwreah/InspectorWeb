@@ -1,9 +1,9 @@
 <template>
     <splitpanes class="default-theme" style="height: 100%">
-        <pane size="20" min-size="20" max-size="40">
+        <pane size="15" max-size="40">
             <!-- TODO -->
         </pane>
-        <pane size="80">
+        <pane size="85">
             <HelloWorld />
         </pane>
     </splitpanes>
