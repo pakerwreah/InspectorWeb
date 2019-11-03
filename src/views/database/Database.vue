@@ -1,15 +1,15 @@
 <template>
     <splitpanes class="default-theme" style="height: 100%">
-        <pane size="15" max-size="40">
-            <!-- TODO -->
+        <pane style="min-width: 250px" size="15" max-size="40">
+            <TreeView :schema="schema" @query="queryTable" />
         </pane>
         <pane size="85">
             <splitpanes horizontal @resize="resize">
                 <pane>
-                    <SqlConsole ref="console" v-model="query" :schema="schema" />
+                    <SqlConsole ref="console" v-model="sql" :schema="schema" />
                 </pane>
                 <pane v-if="result">
-                    <TableView v-model="result" />
+                    <TableView :result="result" />
                 </pane>
             </splitpanes>
         </pane>
@@ -19,15 +19,16 @@
 <script>
     import SqlConsole from './SqlConsole'
     import TableView from './TableView'
+    import TreeView from './TreeView'
     import { Splitpanes, Pane } from 'splitpanes'
     import 'splitpanes/dist/splitpanes.css'
 
     export default {
         name: 'Database',
-        components: { Splitpanes, Pane, SqlConsole, TableView },
+        components: { Splitpanes, Pane, SqlConsole, TableView, TreeView },
         data: () => ({
             schema: {},
-            query: '',
+            sql: '',
             result: null
         }),
         mounted () {
@@ -42,6 +43,16 @@
         methods: {
             resize () {
                 this.$refs.console.$emit('resize')
+            },
+            queryTable (table) {
+                this.query(`SELECT * FROM ${table}`)
+            },
+            async query (sql) {
+                this.sql = sql
+                this.result = (await this.$http.post('/database/query', sql)).data
+                setTimeout(() => {
+                    this.resize()
+                }, 300)
             },
             async loadSchema () {
                 const schema = { tables: {} }

@@ -36,6 +36,8 @@
             }
         },
         mounted () {
+            Object.assign(schema, this.schema)
+
             this.$on('resize', () => {
                 this.$refs.console.editor.resize()
             })

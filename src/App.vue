@@ -38,7 +38,7 @@
 </template>
 
 <script>
-    import Database from './views/Database'
+    import Database from './views/database/Database'
 
     const Pages = {
         Database: { key: 1, text: 'Database' },

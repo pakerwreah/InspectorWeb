@@ -3,7 +3,13 @@ html {
 }
 
 #app {
+    .noselect {
+        user-select: none;
+    }
+
     // stepper
+
+    $header-height: 40px;
 
     .v-stepper {
         border-radius: 0;
@@ -23,7 +29,7 @@ html {
 
     .v-stepper__header {
         justify-content: flex-start;
-        height: 40px;
+        height: $header-height;
         background-color: var(--v-controls-base);
     }
 
@@ -35,7 +41,11 @@ html {
         padding: 0;
     }
 
-    .v-stepper, .v-stepper__items, .v-stepper__content, .v-stepper__wrapper {
+    .v-stepper__items {
+        height: calc(100% - #{$header-height});
+    }
+
+    .v-stepper, .v-stepper__content, .v-stepper__wrapper {
         height: 100%;
     }
 
