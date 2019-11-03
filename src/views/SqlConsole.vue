@@ -11,7 +11,7 @@
         components: { editor },
         props: {
             value: String,
-            database: Object
+            schema: Object
         },
         computed: {
             theme () {
@@ -31,16 +31,14 @@
             })
         },
         watch: {
-            database (value) {
-                Object.assign(database, value)
+            schema (value) {
+                Object.assign(schema, value)
             }
         },
         mounted () {
             this.$on('resize', () => {
                 this.$refs.console.editor.resize()
             })
-
-            Object.assign(database, this.database)
         },
         methods: {
             editorInit () {
@@ -52,75 +50,57 @@
         }
     }
 
-    const database = process.env.NODE_ENV === 'development'
-        ? {
-            tables: {
-                'tb_usuario': {
-                    columns: {
-                        'id_usuario': { type: 'integer' },
-                        'nome': { type: 'text' },
-                        'email': { type: 'text' },
-                        'ativo': { type: 'boolean' }
-                    }
-                },
-                'tb_atividade': {
-                    columns: {
-                        'id_atividade': { type: 'integer' },
-                        'nome': { type: 'text' },
-                        'descricao': { type: 'text' },
-                        'ativo': { type: 'boolean' }
-                    }
-                }
-            }
-        }
-        : {}
+    const schema = {}
 
     // noinspection JSUnusedGlobalSymbols
     const completer = {
         getCompletions: function (editor, session, _pos, prefix, callback) {
             let values = []
-            // noinspection JSUnresolvedFunction
-            const pos = session.doc.positionToIndex(_pos)
-            const text = editor.getValue()
 
-            // ace/lib/ace/autocomplete/text_completer.js
-            const splitRegex = /[^a-zA-Z_0-9$\-\u00C0-\u1FFF\u2C00-\uD7FF\w]+/
+            if (schema.tables) {
+                // noinspection JSUnresolvedFunction
+                const pos = session.doc.positionToIndex(_pos)
+                const text = editor.getValue()
 
-            const suggestions = values =>
-                (Array.isArray(values) ? values : Object.keys(values))
-                    .filter(name => name.startsWith(prefix))
-                    .map(name => ({ name: name, value: name }))
+                // ace/lib/ace/autocomplete/text_completer.js
+                const splitRegex = /[^a-zA-Z_0-9$\-\u00C0-\u1FFF\u2C00-\uD7FF\w]+/
 
-            const before = text.substring(0, pos - prefix.length)
+                const suggestions = values =>
+                    (Array.isArray(values) ? values : Object.keys(values))
+                        .filter(name => name.includes(prefix))
+                        .map(name => ({ name: name, value: name }))
 
-            // search for table after directive
-            if (/\b(from|join|update|table)\b\W+$/i.test(before)) {
-                values = suggestions(database.tables)
-                // - spacer - //
-            } else if (before.endsWith('.')) {
-                // search for columns of table before .
-                const token = before.substr(0, before.length - 1).split(splitRegex).pop()
-                const table = database.tables[token]
-                if (table) {
-                    values = suggestions(table.columns)
-                }
-            }
+                const before = text.substring(0, pos - prefix.length)
 
-            // fallbacks
-            if (!values.length && prefix.length >= 2) {
-                // search for columns of all tables in sql
-                for (const [name, table] of Object.entries(database.tables)) {
-                    if (new RegExp('\\b' + name + '\\b').test(text)) {
-                        values = values.concat(suggestions(table.columns))
+                // search for table after directive
+                if (/\b(from|join|update|table)\b\W+$/i.test(before)) {
+                    values = suggestions(schema.tables)
+                    // - spacer - //
+                } else if (before.endsWith('.')) {
+                    // search for columns of table before .
+                    const token = before.substr(0, before.length - 1).split(splitRegex).pop()
+                    const table = schema.tables[token]
+                    if (table) {
+                        values = suggestions(table.columns)
                     }
                 }
-                // if there is no tables in sql, get all columns and all tables
-                if (!values.length) {
-                    values = Object.values(database.tables)
-                        .reduce(
-                            (columns, table) => columns.concat(suggestions(table.columns)),
-                            []
-                        ).concat(suggestions(database.tables))
+
+                // fallbacks
+                if (!values.length && prefix.length >= 2) {
+                    // search for columns of all tables in sql
+                    for (const [name, table] of Object.entries(schema.tables)) {
+                        if (new RegExp('\\b' + name + '\\b').test(text)) {
+                            values = values.concat(suggestions(table.columns))
+                        }
+                    }
+                    // if there is no tables in sql, get all columns and all tables
+                    if (!values.length) {
+                        values = Object.values(schema.tables)
+                            .reduce(
+                                (columns, table) => columns.concat(suggestions(table.columns)),
+                                []
+                            ).concat(suggestions(schema.tables))
+                    }
                 }
             }
 
