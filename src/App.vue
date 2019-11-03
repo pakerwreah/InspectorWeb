@@ -56,56 +56,11 @@
         computed: {
             Pages: () => Pages,
             icon_dark_mode () {
-                return this.$vuetify.theme.dark ? 'mdi-white-balance-sunny' : 'mdi-weather-night'
-            },
-            theme () {
-                return this.$vuetify.theme
-            },
-            dark_mode: {
-                get () {
-                    return this.theme.dark
-                },
-                set (val) {
-                    this.theme.dark = val
-                    localStorage.setItem('dark', JSON.stringify(val))
-                }
+                return this.dark_mode ? 'mdi-white-balance-sunny' : 'mdi-weather-night'
             }
         },
         beforeMount () {
-            this.theme.dark = JSON.parse(localStorage.getItem('dark'))
+            this.dark_mode = JSON.parse(localStorage.getItem('dark'))
         }
     }
 </script>
-
-<style lang="scss">
-    @import "styles/application";
-
-    #app {
-        .v-stepper {
-            border-radius: 0;
-        }
-
-        .v-stepper__step {
-            padding: 0 20px;
-        }
-        .v-stepper__step--active {
-            border-bottom: solid 2px var(--v-primary-base);
-        }
-        .v-stepper__step__step {
-            display: none;
-        }
-        .v-stepper__header {
-            justify-content: flex-start;
-            height: 40px;
-        }
-        .v-stepper__label {
-            display: flex !important;
-        }
-        .v-stepper__content {
-            padding: 0;
-        }
-        .v-stepper, .v-stepper__items, .v-stepper__content, .v-stepper__wrapper {
-            height: 100%;
-        }
-    }
-</style>

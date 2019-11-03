@@ -13,6 +13,7 @@
     "moment": "^2.24.0",
     "splitpanes": "^2.0.0",
     "vue": "^2.6.10",
+    "vue2-ace-editor": "0.0.15",
     "vuetify": "^2.1.0"
   },
   "devDependencies": {

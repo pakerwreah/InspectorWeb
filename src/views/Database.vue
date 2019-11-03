@@ -4,35 +4,35 @@
             <!-- TODO -->
         </pane>
         <pane size="85">
-            <HelloWorld />
+            <splitpanes horizontal @resize="resize">
+                <pane>
+                    <SqlConsole ref="console" v-model="query" />
+                </pane>
+                <pane v-if="result">
+                    <TableView v-model="result" />
+                </pane>
+            </splitpanes>
         </pane>
     </splitpanes>
 </template>
 
 <script>
-    import HelloWorld from './HelloWorld'
+    import SqlConsole from './SqlConsole'
+    import TableView from './TableView'
     import { Splitpanes, Pane } from 'splitpanes'
     import 'splitpanes/dist/splitpanes.css'
 
     export default {
         name: 'Database',
-        components: { Splitpanes, Pane, HelloWorld }
-    }
-</script>
-
-<style lang="scss">
-    .theme--dark {
-        .splitpanes.default-theme {
-
-            .splitpanes__pane {
-                background-color: unset;
+        components: { Splitpanes, Pane, SqlConsole, TableView },
+        data: () => ({
+            query: '',
+            result: null
+        }),
+        methods: {
+            resize () {
+                this.$refs.console.$emit('resize')
             }
-
-            .splitpanes__splitter {
-                border-left: none;
-                background-color: var(--v-secondary-base);
-            }
-
         }
     }
-</style>
+</script>
