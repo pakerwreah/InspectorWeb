@@ -51,8 +51,9 @@
                 v-else
                 :value="progress"
                 size="80"
+                width="2"
                 color="primary"
-                class="ma-auto align-self-center">
+                class="ma-auto align-self-center progress">
             {{ progress }}%
         </v-progress-circular>
     </div>
@@ -108,6 +109,10 @@
 </script>
 
 <style lang="scss">
+    .progress .v-progress-circular__overlay {
+        transition: all 120ms linear;
+    }
+
     .tree-container {
         position: relative;
         height: 100%;

@@ -110,12 +110,16 @@
                     }
                     schema.tables[table] = { columns }
 
-                    this.progress = 100 * (parseFloat(i) + 1) / tables.length
+                    if (i % 3 === 0) {
+                        this.progress = 100 * (parseInt(i) + 1) / tables.length
+                    }
                 }
+
+                this.progress = 100
 
                 setTimeout(() => {
                     this.schema = schema
-                }, 600)
+                }, 150)
             }
         }
     }
