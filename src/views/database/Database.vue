@@ -1,7 +1,7 @@
 <template>
     <splitpanes class="default-theme" style="height: 100%">
         <pane style="min-width: 250px" size="15" max-size="40">
-            <TreeView :schema="schema" @query="queryTable" />
+            <TreeView :schema="schema" :progress="progress" @query="queryTable" />
         </pane>
         <pane size="85">
             <splitpanes horizontal @resize="resize">
@@ -27,6 +27,7 @@
         name: 'Database',
         components: { Splitpanes, Pane, SqlConsole, TableView, TreeView },
         data: () => ({
+            progress: 0,
             schema: {},
             sql: '',
             result: null
@@ -68,7 +69,7 @@
 
                 const tables = r.data.data.map(d => d[0])
 
-                for (const table of tables) {
+                const getColumns = async table => {
                     const sql_columns = `pragma table_info(${table})`
                     const r = await this.$http.post('/database/query', sql_columns)
                     const cols = r.data.data
@@ -82,10 +83,39 @@
                             pk: !!c[idx('pk')]
                         }
                     }
-                    schema.tables[table] = { columns }
+                    return columns
                 }
 
-                this.schema = schema
+                const getForeignKeys = async table => {
+                    const sql_columns = `pragma foreign_key_list(${table})`
+                    const r = await this.$http.post('/database/query', sql_columns)
+                    const cols = r.data.data
+                    const idx = name => r.data.headers.indexOf(name)
+                    const foreign_keys = []
+                    for (const c of cols) {
+                        foreign_keys.push({
+                            from: c[idx('from')],
+                            table: c[idx('table')],
+                            to: c[idx('to')]
+                        })
+                    }
+                    return foreign_keys
+                }
+
+                for (const [i, table] of Object.entries(tables)) {
+                    const columns = await getColumns(table)
+                    const foreign_keys = await getForeignKeys(table)
+                    for (const fk of foreign_keys) {
+                        columns[fk.from].fk = `${fk.table} (${fk.to})`
+                    }
+                    schema.tables[table] = { columns }
+
+                    this.progress = 100 * (parseFloat(i) + 1) / tables.length
+                }
+
+                setTimeout(() => {
+                    this.schema = schema
+                }, 600)
             }
         }
     }
