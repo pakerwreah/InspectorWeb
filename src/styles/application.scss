@@ -3,6 +3,10 @@ html {
 }
 
 #app {
+    .v-application, .v-icon.v-icon {
+        line-height: 1.4;
+    }
+
     .noselect {
         user-select: none;
     }
@@ -54,6 +58,7 @@ html {
     .splitpanes.default-theme {
         .splitpanes__pane {
             overflow: auto;
+            position: relative;
 
             ::-webkit-scrollbar {
                 display: none;
@@ -76,7 +81,7 @@ html {
     .theme--dark {
         .splitpanes.default-theme {
             .splitpanes__pane {
-                background-color: unset;
+                background-color: #303030;
             }
 
             .splitpanes__splitter {

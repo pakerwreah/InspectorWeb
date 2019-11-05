@@ -1,5 +1,16 @@
 <template>
     <div class="tree-container">
+        <v-select class="database-picker"
+                  background-color="panel"
+                  v-model="selected"
+                  :items="databases"
+                  prepend-inner-icon="mdi-database"
+                  :append-icon="null"
+                  :disabled="!items"
+                  :readonly="databases.length === 1"
+                  hide-details
+                  hide-selected
+                  filled solo dense flat />
         <v-treeview v-if="items"
                     class="database-tree"
                     :open.sync="open"
@@ -64,12 +75,24 @@
         name: 'TreeView',
         props: {
             schema: Object,
-            progress: Number
+            progress: Number,
+            databases: Array,
+            currentdb: Number
         },
         data: () => ({
             items: null,
             open: []
         }),
+        computed: {
+            selected: {
+                get () {
+                    return this.databases[this.currentdb]
+                },
+                set (name) {
+                    this.$emit('selectDB', this.databases.indexOf(name))
+                }
+            }
+        },
         watch: {
             schema () {
                 this.loadSchema()
@@ -102,6 +125,9 @@
                     }
 
                     this.items = tables
+                    this.open = []
+                } else {
+                    this.items = null
                 }
             }
         }
@@ -118,13 +144,26 @@
         height: 100%;
         overflow: auto;
         display: flex;
+        flex-direction: column;
+
+        .database-picker {
+            flex: 0;
+
+            .v-icon {
+                color: var(--v-selection_bg-base) !important;
+            }
+
+            .v-input__slot {
+                padding-left: 5px !important;
+            }
+        }
 
         .database-tree {
             position: absolute;
-            top: 0;
+            top: 35px;
             left: 0;
             right: 0;
-            padding: 4px 4px 20px;
+            padding: 0 4px 20px;
 
             .v-icon.v-icon {
                 font-size: 18px;
