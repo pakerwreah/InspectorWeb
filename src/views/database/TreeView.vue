@@ -173,6 +173,10 @@
                 min-height: 25px;
             }
 
+            .v-treeview-node__label, .v-icon.v-icon {
+                line-height: 1.4;
+            }
+
             > .v-treeview-node[aria-expanded=true] {
                 margin-bottom: 5px;
             }
