@@ -1,10 +1,20 @@
 <template>
-    <editor ref="console" @init="editorInit" lang="mysql" :theme="theme" :options="editorOptions" v-model="query" />
+    <editor ref="console"
+            v-model="query"
+            lang="mysql"
+            :theme="theme"
+            :options="editorOptions" />
 </template>
 
-<!--suppress NpmUsedModulesInstalled -->
 <script>
     import editor from 'vue2-ace-editor'
+
+    import 'brace/mode/mysql' // não tem sqlite =(
+    import 'brace/theme/chrome'
+    import 'brace/theme/twilight'
+    import 'brace/ext/language_tools'
+    import 'brace/ext/searchbox'
+    import 'brace/ext/keybinding_menu'
 
     export default {
         name: 'SqlConsole',
@@ -25,6 +35,9 @@
                     this.$emit('input', value)
                 }
             },
+            editor () {
+                return this.$refs.console.editor
+            },
             editorOptions: () => ({
                 enableBasicAutocompletion: [completer],
                 enableLiveAutocompletion: [completer]
@@ -39,16 +52,17 @@
             Object.assign(schema, this.schema)
 
             this.$on('resize', () => {
-                this.$refs.console.editor.resize()
+                this.editor.resize()
             })
-        },
-        methods: {
-            editorInit () {
-                require('brace/mode/mysql') // não tem sqlite =(
-                require('brace/theme/chrome')
-                require('brace/theme/twilight')
-                require('brace/ext/language_tools')
+
+            const exec = (editor) => {
+                // noinspection JSUnresolvedFunction
+                this.$emit('query', editor.getSelectedText() || this.query)
             }
+
+            const commands = ['Ctrl-Enter', 'Command-Enter'].map((bindKey, i) => ({ name: 'query' + i, bindKey, exec }))
+
+            commands.forEach(cmd => this.editor.commands.addCommand(cmd))
         }
     }
 
@@ -110,6 +124,3 @@
         }
     }
 </script>
-
-<style scoped>
-</style>

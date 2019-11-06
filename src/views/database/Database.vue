@@ -13,11 +13,15 @@
                 <pane>
                     <SqlConsole ref="console"
                                 v-model="sql"
-                                :schema="schema" />
+                                :schema="schema"
+                                @query="query" />
                     <v-overlay absolute :value="!schema.tables" />
                 </pane>
-                <pane v-if="result">
-                    <TableView :result="result" />
+                <pane v-if="error">
+                    <div class="error--text ma-2">{{ error }}</div>
+                </pane>
+                <pane v-else-if="result">
+                    <TableView :result="result" :loading="loading" />
                 </pane>
             </splitpanes>
         </pane>
@@ -25,6 +29,7 @@
 </template>
 
 <script>
+    import { get } from 'lodash'
     import SqlConsole from './SqlConsole'
     import TableView from './TableView'
     import TreeView from './TreeView'
@@ -40,7 +45,9 @@
             databases: [],
             schema: {},
             sql: '',
-            result: null
+            result: null,
+            error: null,
+            loading: false
         }),
         watch: {
             sql (value) {
@@ -48,7 +55,7 @@
             }
         },
         mounted () {
-            this.sql = localStorage.getItem('sql')
+            this.sql = localStorage.getItem('sql') || ''
             this.getDatabases().catch(() => {
                 const interval = setInterval(() => {
                     this.getDatabases()
@@ -65,10 +72,19 @@
                 this.query(`SELECT * FROM ${table}`)
             },
             async query (sql) {
-                this.result = (await this.$http.post('/database/query', sql)).data
-                setTimeout(() => {
-                    this.resize()
-                }, 300)
+                if (this.loading) return
+
+                this.error = null
+                this.loading = true
+                try {
+                    this.result = (await this.$http.post('/database/query', sql)).data
+                    setTimeout(() => {
+                        this.resize()
+                    }, 300)
+                } catch (error) {
+                    this.error = get(error, 'response.data.msg', error.message)
+                }
+                this.loading = false
             },
             async selectDB (index) {
                 await this.$http.put('/database/current/' + index)
@@ -145,7 +161,8 @@
                     schema.tables[table] = { columns }
 
                     if (i % 3 === 0) {
-                        this.progress = 100 * (parseInt(i) + 1) / tables.length
+                        const progress = 100 * (parseInt(i) + 1) / tables.length
+                        this.progress = Math.round(progress)
                     }
                 }
 
