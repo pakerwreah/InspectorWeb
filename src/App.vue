@@ -31,7 +31,14 @@
             </v-content>
 
             <v-footer app>
-                <span>&copy; 2019</span>
+                <v-flex xs2>
+                    <v-text-field
+                            v-model="baseURL"
+                            class="ip-field"
+                            height="25"
+                            outlined
+                            hide-details />
+                </v-flex>
             </v-footer>
         </v-app>
     </div>
@@ -57,10 +64,42 @@
             Pages: () => Pages,
             icon_dark_mode () {
                 return this.dark_mode ? 'mdi-white-balance-sunny' : 'mdi-weather-night'
+            },
+            baseURL: {
+                get () {
+                    return this.$http.defaults.baseURL.substr(7)
+                },
+                set (value) {
+                    localStorage.setItem('baseURL', value)
+                    this.$http.defaults.baseURL = 'http://' + value
+                }
             }
         },
         beforeMount () {
-            this.dark_mode = JSON.parse(localStorage.getItem('dark'))
+            this.baseURL = localStorage.getItem('baseURL') || this.baseURL
+            this.dark_mode = JSON.parse(localStorage.getItem('dark')) || false
         }
     }
 </script>
+
+<style lang="scss">
+    .v-footer {
+        background-color: var(--v-controls-base) !important;
+        padding: 6px !important;
+    }
+
+    .ip-field.v-text-field--outlined {
+        fieldset {
+            border-width: 0 !important;
+        }
+
+        .v-input__slot {
+            min-height: 0 !important;
+            background-color: var(--v-controls-darken1);
+
+            input {
+                opacity: 0.7;
+            }
+        }
+    }
+</style>
