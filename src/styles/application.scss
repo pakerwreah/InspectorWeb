@@ -57,7 +57,18 @@ html {
             position: relative;
 
             ::-webkit-scrollbar {
-                display: none;
+                width: 10px;
+                height: 10px;
+            }
+
+            ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner {
+                background-color: var(--v-controls-darken1);
+            }
+
+            ::-webkit-scrollbar-thumb {
+                border-radius: 10px;
+                background-color: var(--v-controls-darken2);
+                border: solid 2px var(--v-controls-darken1);
             }
         }
     }
