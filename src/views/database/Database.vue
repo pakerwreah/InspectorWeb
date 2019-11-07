@@ -22,6 +22,7 @@
                 </pane>
                 <pane v-else-if="result">
                     <TableView :result="result" :loading="loading" />
+                    <div class="result-info">{{ info }}</div>
                 </pane>
             </splitpanes>
         </pane>
@@ -36,6 +37,19 @@
     import { Splitpanes, Pane } from 'splitpanes'
     import 'splitpanes/dist/splitpanes.css'
 
+    function formatDuration (duration) {
+        let msg = []
+        if (duration.sec) {
+            msg.push(`${duration.sec} seconds`)
+        }
+
+        if (duration.usec) {
+            msg.push(`${duration.usec / 1000} milliseconds`)
+        }
+
+        return msg.join(' and ')
+    }
+
     export default {
         name: 'Database',
         components: { Splitpanes, Pane, SqlConsole, TableView, TreeView },
@@ -47,7 +61,8 @@
             sql: '',
             result: null,
             error: null,
-            loading: false
+            loading: false,
+            info: ''
         }),
         watch: {
             sql (value) {
@@ -76,11 +91,13 @@
 
                 this.error = null
                 this.loading = true
+                this.info = ''
                 try {
                     this.result = (await this.$http.post('/database/query', sql)).data
                     setTimeout(() => {
                         this.resize()
                     }, 300)
+                    this.info = 'Query executed in ' + formatDuration(this.result.duration)
                 } catch (error) {
                     this.error = get(error, 'response.data.msg', error.message)
                 }
@@ -175,3 +192,12 @@
         }
     }
 </script>
+
+<style scoped lang="scss">
+    .result-info {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        font-size: 12px;
+    }
+</style>
