@@ -37,13 +37,16 @@
     import 'splitpanes/dist/splitpanes.css'
 
     function formatDuration (duration) {
+        const { sec, usec } = duration
+
         let msg = []
-        if (duration.sec) {
-            msg.push(`${duration.sec} seconds`)
+
+        if (sec) {
+            msg.push(`${sec} second` + (sec > 1 ? 's' : ''))
         }
 
-        if (duration.usec) {
-            msg.push(`${duration.usec / 1000} milliseconds`)
+        if (usec) {
+            msg.push(`${usec / 1000} milliseconds`)
         }
 
         return msg.join(' and ')
