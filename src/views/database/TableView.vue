@@ -19,7 +19,7 @@
         </template>
         <template v-if="!loading" v-slot:body.prepend>
             <tr>
-                <td v-for="(h,i) in result.headers" :key="h">
+                <td v-for="(h,i) in result.headers" :key="i">
                     <v-text-field spellcheck="false" append-icon="mdi-magnify" class="result-search" background-color="controls" dense hide-details v-model="search[i]" />
                 </td>
             </tr>
