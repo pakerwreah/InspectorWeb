@@ -110,6 +110,17 @@
             }
         }
 
+        .v-data-footer__select .v-select {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+
+            .v-input__slot {
+                &::before, &::after {
+                    border: none !important;
+                }
+            }
+        }
+
         th {
             background-color: var(--v-panel-base) !important;
             white-space: nowrap;
