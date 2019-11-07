@@ -1,9 +1,21 @@
 <template>
-    <editor ref="console"
-            v-model="sql"
-            lang="mysql"
-            :theme="theme"
-            :options="editorOptions" />
+    <div class="console-wrapper">
+        <div class="d-flex align-center">
+            <v-btn icon small class="ml-3" color="success" @click="executeQuery">
+                <v-icon>mdi-play</v-icon>
+            </v-btn>
+            <v-spacer />
+            <v-checkbox class="my-0 py-0 mr-2"
+                        v-model="script"
+                        label="Script"
+                        dense hide-details />
+        </div>
+        <editor ref="console"
+                v-model="sql"
+                lang="mysql"
+                :theme="theme"
+                :options="editorOptions" />
+    </div>
 </template>
 
 <script>
@@ -24,7 +36,8 @@
             schema: Object
         },
         data: () => ({
-            sql: ''
+            sql: '',
+            script: false
         }),
         computed: {
             theme () {
@@ -44,10 +57,14 @@
             },
             sql (value) {
                 localStorage.setItem('sql', value)
+            },
+            script (value) {
+                localStorage.setItem('script', value)
             }
         },
         mounted () {
             this.sql = localStorage.getItem('sql') || ''
+            this.script = JSON.parse(localStorage.getItem('script')) || false
 
             Object.assign(schema, this.schema)
 
@@ -55,14 +72,19 @@
                 this.editor.resize()
             })
 
-            const exec = (editor) => {
-                // noinspection JSUnresolvedFunction
-                this.$emit('query', editor.getSelectedText() || this.sql)
+            const exec = () => {
+                this.executeQuery()
             }
 
             const commands = ['Ctrl-Enter', 'Command-Enter'].map((bindKey, i) => ({ name: 'query' + i, bindKey, exec }))
 
             commands.forEach(cmd => this.editor.commands.addCommand(cmd))
+        },
+        methods: {
+            executeQuery () {
+                // noinspection JSUnresolvedFunction
+                this.$emit('query', this.editor.getSelectedText() || this.sql, this.script)
+            }
         }
     }
 
@@ -124,3 +146,19 @@
         }
     }
 </script>
+
+<style lang="scss">
+    .console-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+
+        .v-input--selection-controls__input {
+            margin-right: 0;
+
+            .v-icon {
+                color: var(--v-selection_bg-base);
+            }
+        }
+    }
+</style>

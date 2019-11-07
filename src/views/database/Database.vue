@@ -78,14 +78,14 @@
             queryTable (table) {
                 this.query(`SELECT * FROM ${table}`)
             },
-            async query (sql) {
+            async query (sql, script) {
                 if (this.loading) return
 
                 this.error = null
                 this.loading = true
                 this.info = ''
                 try {
-                    this.result = (await this.$http.post('/database/query', sql)).data
+                    this.result = (await this.$http.post('/database/' + (script ? 'execute' : 'query'), sql)).data
                     setTimeout(() => {
                         this.resize()
                     }, 300)

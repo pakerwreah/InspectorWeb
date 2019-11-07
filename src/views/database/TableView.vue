@@ -19,8 +19,14 @@
         </template>
         <template v-if="!loading" v-slot:body.prepend>
             <tr>
-                <td v-for="(h,i) in result.headers" :key="i">
-                    <v-text-field spellcheck="false" append-icon="mdi-magnify" class="result-search" background-color="controls" dense hide-details v-model="search[i]" />
+                <td v-for="i in headers.length" :key="i">
+                    <v-text-field v-model="search[i-1]"
+                                  class="result-search"
+                                  append-icon="mdi-magnify"
+                                  background-color="controls"
+                                  autocomplete="off"
+                                  spellcheck="false"
+                                  dense hide-details />
                 </td>
             </tr>
         </template>
@@ -28,7 +34,7 @@
 </template>
 
 <script>
-    import { zipObject } from 'lodash'
+    import { zipObject, get } from 'lodash'
 
     export default {
         name: 'TableView',
@@ -42,10 +48,10 @@
         computed: {
             headers () {
                 const filter = i => value => !(this.search[i] || '').length || String(value).toLowerCase().includes(this.search[i].toLowerCase())
-                return this.loading ? [] : this.result.headers.map((r, i) => ({ text: r, value: r, filter: filter(i) }))
+                return this.loading ? [] : get(this.result, 'headers', []).map((r, i) => ({ text: r, value: r, filter: filter(i) }))
             },
             items () {
-                return this.loading ? [] : this.result.data.map(r => zipObject(this.result.headers, r))
+                return this.loading ? [] : get(this.result, 'data', []).map(r => zipObject(this.result.headers, r))
             }
         }
     }
