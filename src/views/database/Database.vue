@@ -12,7 +12,6 @@
             <splitpanes horizontal @resize="resize">
                 <pane>
                     <SqlConsole ref="console"
-                                v-model="sql"
                                 :schema="schema"
                                 @query="query" />
                     <v-overlay absolute :value="!schema.tables" />
@@ -58,19 +57,12 @@
             currentdb: 0,
             databases: [],
             schema: {},
-            sql: '',
             result: null,
             error: null,
             loading: false,
             info: ''
         }),
-        watch: {
-            sql (value) {
-                localStorage.setItem('sql', value)
-            }
-        },
         mounted () {
-            this.sql = localStorage.getItem('sql') || ''
             this.getDatabases().catch(() => {
                 const interval = setInterval(() => {
                     this.getDatabases()

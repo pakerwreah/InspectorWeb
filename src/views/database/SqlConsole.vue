@@ -1,6 +1,6 @@
 <template>
     <editor ref="console"
-            v-model="query"
+            v-model="sql"
             lang="mysql"
             :theme="theme"
             :options="editorOptions" />
@@ -23,17 +23,12 @@
             value: String,
             schema: Object
         },
+        data: () => ({
+            sql: ''
+        }),
         computed: {
             theme () {
                 return this.dark_mode ? 'twilight' : 'chrome'
-            },
-            query: {
-                get () {
-                    return this.value
-                },
-                set (value) {
-                    this.$emit('input', value)
-                }
             },
             editor () {
                 return this.$refs.console.editor
@@ -46,9 +41,14 @@
         watch: {
             schema (value) {
                 Object.assign(schema, value)
+            },
+            sql (value) {
+                localStorage.setItem('sql', value)
             }
         },
         mounted () {
+            this.sql = localStorage.getItem('sql') || ''
+
             Object.assign(schema, this.schema)
 
             this.$on('resize', () => {
@@ -57,7 +57,7 @@
 
             const exec = (editor) => {
                 // noinspection JSUnresolvedFunction
-                this.$emit('query', editor.getSelectedText() || this.query)
+                this.$emit('query', editor.getSelectedText() || this.sql)
             }
 
             const commands = ['Ctrl-Enter', 'Command-Enter'].map((bindKey, i) => ({ name: 'query' + i, bindKey, exec }))
