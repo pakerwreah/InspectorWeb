@@ -26,6 +26,7 @@
                                   background-color="controls"
                                   autocomplete="off"
                                   spellcheck="false"
+                                  @input="updateSearch(i-1)"
                                   dense hide-details />
                 </td>
             </tr>
@@ -34,7 +35,7 @@
 </template>
 
 <script>
-    import { zipObject, get } from 'lodash'
+    import { zipObject, get, debounce } from 'lodash'
 
     export default {
         name: 'TableView',
@@ -43,15 +44,21 @@
             loading: Boolean
         },
         data: () => ({
-            search: []
+            search: [],
+            search_debounced: []
         }),
         computed: {
             headers () {
-                const filter = i => value => !(this.search[i] || '').length || String(value).toLowerCase().includes(this.search[i].toLowerCase())
+                const filter = i => value => !(this.search_debounced[i] || '').length || String(value).toLowerCase().includes(this.search_debounced[i].toLowerCase())
                 return this.loading ? [] : get(this.result, 'headers', []).map((r, i) => ({ text: r, value: r, filter: filter(i) }))
             },
             items () {
                 return this.loading ? [] : get(this.result, 'data', []).map(r => zipObject(this.result.headers, r))
+            },
+            updateSearch () {
+                return debounce(i => {
+                    this.$set(this.search_debounced, i, this.search[i])
+                }, Math.max(70 * this.items.length / 10000, 1000))
             }
         }
     }
