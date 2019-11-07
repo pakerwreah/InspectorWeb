@@ -13,7 +13,16 @@
             }"
             class="result-table fill-height">
         <template v-slot:no-data>
-            <div class="no-data"><div>No data available</div></div>
+            <div class="no-data">
+                <div>No data available</div>
+            </div>
+        </template>
+        <template v-if="!loading" v-slot:body.prepend>
+            <tr>
+                <td v-for="(h,i) in result.headers" :key="h">
+                    <v-text-field spellcheck="false" append-icon="mdi-magnify" class="result-search" background-color="controls" dense hide-details v-model="search[i]" />
+                </td>
+            </tr>
         </template>
     </v-data-table>
 </template>
@@ -27,10 +36,13 @@
             result: Object,
             loading: Boolean
         },
-        data: () => ({}),
+        data: () => ({
+            search: []
+        }),
         computed: {
             headers () {
-                return this.loading ? [] : this.result.headers.map(r => ({ text: r, value: r }))
+                const filter = i => value => !(this.search[i] || '').length || String(value).toLowerCase().includes(this.search[i].toLowerCase())
+                return this.loading ? [] : this.result.headers.map((r, i) => ({ text: r, value: r, filter: filter(i) }))
             },
             items () {
                 return this.loading ? [] : this.result.data.map(r => zipObject(this.result.headers, r))
@@ -49,6 +61,37 @@
         right: 0;
         bottom: 0;
         top: 0;
+
+        .result-search {
+            margin-bottom: 5px;
+
+            .v-input__slot {
+                font-size: 12px;
+                height: 22px;
+                border-radius: 5px;
+
+                input {
+                    padding: 8px 0 8px 8px !important;
+                }
+
+                &::before, &::after {
+                    border: none !important;
+                }
+            }
+
+            .v-input__append-inner {
+                margin-top: 0;
+
+                .v-input__icon {
+                    height: 22px;
+
+                    .v-icon {
+                        font-size: 18px;
+                        color: var(--v-controls-darken2);
+                    }
+                }
+            }
+        }
 
         .v-data-table__wrapper {
             position: relative;
@@ -70,15 +113,20 @@
         th {
             background-color: var(--v-panel-base) !important;
             white-space: nowrap;
+            span {
+                display: inline-block;
+                width: calc(100% - 18px);
+                padding-left: 18px;
+                margin-right: 2px;
+                text-align: center !important;
+            }
         }
 
-        table {
-            tbody {
-                height: 100%;
+        tbody {
+            height: 100%;
 
-                tr:hover {
-                    background: none !important;
-                }
+            tr:hover {
+                background: none !important;
             }
         }
     }
