@@ -123,14 +123,18 @@
             }
         }
 
-        .v-data-footer__select .v-select {
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
+        .v-data-footer {
+            .v-data-footer__select .v-select {
+                margin: 0 0 0 12px !important;
 
-            .v-input__slot {
-                &::before, &::after {
-                    border: none !important;
+                .v-input__slot {
+                    &::before, &::after {
+                        border: none !important;
+                    }
                 }
+            }
+            .v-data-footer__pagination {
+                margin: 0 18px 0 12px !important;
             }
         }
 

@@ -1,5 +1,5 @@
 <template>
-    <splitpanes class="default-theme" style="height: 100%">
+    <splitpanes class="default-theme fill-height">
         <pane style="min-width: 250px" size="15" max-size="40">
             <TreeView :databases="databases"
                       :currentdb="currentdb"
@@ -34,7 +34,6 @@
     import TableView from './TableView'
     import TreeView from './TreeView'
     import { Splitpanes, Pane } from 'splitpanes'
-    import 'splitpanes/dist/splitpanes.css'
 
     function formatDuration (duration) {
         const { sec, usec } = duration
@@ -71,7 +70,7 @@
                     this.getDatabases()
                         .then(() => clearInterval(interval))
                         .catch(() => false)
-                }, 5000)
+                }, 3000)
             })
         },
         methods: {
@@ -92,7 +91,7 @@
                     setTimeout(() => {
                         this.resize()
                     }, 300)
-                    this.info = 'Query executed in ' + formatDuration(this.result.duration)
+                    this.info = 'Runtime: ' + formatDuration(this.result.duration)
                 } catch (error) {
                     this.error = get(error, 'response.data.msg', error.message)
                 }
@@ -191,8 +190,8 @@
 <style scoped lang="scss">
     .result-info {
         position: absolute;
-        bottom: 8px;
-        left: 8px;
+        bottom: 9px;
+        left: 12px;
         font-size: 12px;
     }
 </style>
