@@ -24,7 +24,7 @@
                             <Database />
                         </v-stepper-content>
                         <v-stepper-content :step="Pages.Network.key">
-                            ¯\_(ツ)_/¯
+                            <Network :current-page="current_page === Pages.Network.key" />
                         </v-stepper-content>
                     </v-stepper-items>
                 </v-stepper>
@@ -46,6 +46,7 @@
 
 <script>
     import Database from './views/database/Database'
+    import Network from './views/network/Network'
 
     const Pages = {
         Database: { key: 1, text: 'Database' },
@@ -55,7 +56,7 @@
     export default {
         name: 'App',
         components: {
-            Database
+            Database, Network
         },
         data: () => ({
             current_page: Pages.Database.key
@@ -75,9 +76,15 @@
                 }
             }
         },
+        watch: {
+            current_page (page) {
+                localStorage.setItem('current_page', page)
+            }
+        },
         beforeMount () {
             this.baseURL = localStorage.getItem('baseURL') || this.baseURL
             this.dark_mode = JSON.parse(localStorage.getItem('dark')) || false
+            this.current_page = parseInt(localStorage.getItem('current_page')) || this.current_page
         }
     }
 </script>
