@@ -39,6 +39,10 @@
                             outlined
                             hide-details />
                 </v-flex>
+                <v-spacer />
+                <span class="version">
+                    v{{ version }}
+                </span>
             </v-footer>
         </v-app>
     </div>
@@ -62,6 +66,9 @@
             current_page: Pages.Database.key
         }),
         computed: {
+            version () {
+                return process.env.VERSION
+            },
             Pages: () => Pages,
             icon_dark_mode () {
                 return this.dark_mode ? 'mdi-white-balance-sunny' : 'mdi-weather-night'
@@ -88,6 +95,13 @@
         }
     }
 </script>
+<style scoped lang='scss'>
+    .version {
+        font-size: 12px;
+        opacity: 0.7;
+        margin-right: 10px;
+    }
+</style>
 
 <style lang="scss">
     .v-footer {
