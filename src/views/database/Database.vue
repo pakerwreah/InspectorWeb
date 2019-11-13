@@ -110,7 +110,7 @@
                 if (r.data) {
                     this.databases = r.data.databases
                     this.currentdb = r.data.current
-                    this.loadSchema()
+                    await this.loadSchema()
                 }
             },
             async loadSchema () {

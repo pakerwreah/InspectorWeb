@@ -133,9 +133,6 @@
             detail_size () {
                 return this.selected !== undefined ? 40 : 0
             },
-            host () {
-                return this.$http.defaults.baseURL.substr(7)
-            },
             session () {
                 const len = this.session_list.length
                 return len ? this.session_list[len - 1] : {}
@@ -175,8 +172,11 @@
             })
         },
         methods: {
+            host () {
+                return this.$http.defaults.baseURL.substr(7)
+            },
             openRequest () {
-                const ws = new WebSocket(`ws://${this.host}/network/request`)
+                const ws = new WebSocket(`ws://${this.host()}/network/request`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -211,7 +211,7 @@
                 }
             },
             openResponse () {
-                const ws = new WebSocket(`ws://${this.host}/network/response`)
+                const ws = new WebSocket(`ws://${this.host()}/network/response`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -324,12 +324,12 @@
         return { pathname: a.pathname, origin: a.origin }
     }
 
-    function parseHeaders (headers) {
+    function parseHeaders (headers, lowerkeys = false) {
         const parsed = {}
         for (const line of headers.split('\n')) {
             const [key, value] = line.split(': ')
             if (key) {
-                parsed[key] = value
+                parsed[lowerkeys ? key.toLowerCase() : key] = value
             }
         }
         parsed.URL = parseUrl(parsed.URL)
@@ -351,9 +351,9 @@
             const uid = headers.splice(0, 1).pop()
             headers = headers.join('\n')
 
-            const h = parseHeaders(headers)
+            const h = parseHeaders(headers, true)
 
-            const body = new Blob([zlib.gunzipSync(Buffer.from(msg.data, p + 1))], { type: h['Content-Type'] })
+            const body = new Blob([zlib.gunzipSync(Buffer.from(msg.data, p + 1))], { type: h['content-type'] })
 
             return { uid, headers, body }
         }
