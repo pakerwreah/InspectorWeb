@@ -42,7 +42,7 @@ deploy:
     - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
 
   script:
-    - scp -v ${InspectorCompressed} gitlabci@rodobens.teste.newm.ga:/tmp
+    - scp -v ${InspectorCompressed} gitlabci@inspector.newm.ga:/tmp
     - ssh gitlabci@inspector.newm.ga "
       rm -rf ${InspectorPath} &&
       tar -xzf /tmp/${InspectorCompressed} -C ${InspectorPath} &&
