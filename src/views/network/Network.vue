@@ -324,12 +324,12 @@
         return { pathname: a.pathname, origin: a.origin }
     }
 
-    function parseHeaders (headers) {
+    function parseHeaders (headers, lowerkeys = false) {
         const parsed = {}
         for (const line of headers.split('\n')) {
             const [key, value] = line.split(': ')
             if (key) {
-                parsed[key] = value
+                parsed[lowerkeys ? key.toLowerCase() : key] = value
             }
         }
         parsed.URL = parseUrl(parsed.URL)
@@ -351,9 +351,9 @@
             const uid = headers.splice(0, 1).pop()
             headers = headers.join('\n')
 
-            const h = parseHeaders(headers)
+            const h = parseHeaders(headers, true)
 
-            const body = new Blob([zlib.gunzipSync(Buffer.from(msg.data, p + 1))], { type: h['Content-Type'] })
+            const body = new Blob([zlib.gunzipSync(Buffer.from(msg.data, p + 1))], { type: h['content-type'] })
 
             return { uid, headers, body }
         }
