@@ -44,6 +44,6 @@ deploy:
   script:
     - scp -v ${InspectorCompressed} gitlabci@inspector.newm.ga:/tmp
     - ssh gitlabci@inspector.newm.ga "
-      rm -rf ${InspectorPath} &&
+      rm -rf ${InspectorPath}/* &&
       tar -xzf /tmp/${InspectorCompressed} -C ${InspectorPath} &&
       rm -rf /tmp/${InspectorCompressed}"
