@@ -122,6 +122,7 @@
             currentPage: Boolean
         },
         data: () => ({
+            connected: false,
             session_list: [],
             requests: {},
             selected: undefined,
@@ -186,8 +187,9 @@
                 ws.onmessage = (msg) => {
                     const data = decode(msg)
                     if (data) {
-                        if (!this.session_list.length) {
+                        if (!this.connected || !this.session_list.length) {
                             this.session_list.push(newSession())
+                            this.connected = true
                         }
                         data.session = this.session.timestamp
                         data.timestamp = new Date().getTime()
@@ -205,6 +207,7 @@
                 }
 
                 ws.onclose = () => {
+                    this.connected = false
                     if (RECONNECT) {
                         setTimeout(() => this.openRequest(), 3000)
                     }
@@ -257,6 +260,7 @@
             },
             clearRequests () {
                 this.session_list = []
+                this.requests = {}
                 this.selected = undefined
                 db.clearRequests()
             },
