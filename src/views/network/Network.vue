@@ -133,9 +133,6 @@
             detail_size () {
                 return this.selected !== undefined ? 40 : 0
             },
-            host () {
-                return this.$http.defaults.baseURL.substr(7)
-            },
             session () {
                 const len = this.session_list.length
                 return len ? this.session_list[len - 1] : {}
@@ -175,8 +172,11 @@
             })
         },
         methods: {
+            host () {
+                return this.$http.defaults.baseURL.substr(7)
+            },
             openRequest () {
-                const ws = new WebSocket(`ws://${this.host}/network/request`)
+                const ws = new WebSocket(`ws://${this.host()}/network/request`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -211,7 +211,7 @@
                 }
             },
             openResponse () {
-                const ws = new WebSocket(`ws://${this.host}/network/response`)
+                const ws = new WebSocket(`ws://${this.host()}/network/response`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
