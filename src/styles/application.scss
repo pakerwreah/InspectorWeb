@@ -4,6 +4,7 @@ html {
 
 #app {
     .noselect {
+        cursor: default;
         user-select: none;
     }
 
