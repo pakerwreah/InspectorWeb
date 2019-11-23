@@ -107,8 +107,10 @@
     import copy from 'copy-text-to-clipboard'
     import saveAs from 'tiny-save-as'
 
-    // issues with hot reload =/
-    const RECONNECT = process.env.NODE_ENV !== 'development'
+    /** @type WebSocket */
+    let ws_request = null
+    /** @type WebSocket */
+    let ws_response = null
 
     const newSession = () => ({
         timestamp: new Date().getTime(),
@@ -172,12 +174,22 @@
                 this.openResponse()
             })
         },
+        beforeDestroy () {
+            if (ws_request) {
+                ws_request.close()
+                ws_request = null
+            }
+            if (ws_response) {
+                ws_response.close()
+                ws_response = null
+            }
+        },
         methods: {
             host () {
                 return this.$http.defaults.baseURL.substr(7)
             },
             openRequest () {
-                const ws = new WebSocket(`ws://${this.host()}/network/request`)
+                const ws = ws_request = new WebSocket(`ws://${this.host()}/network/request`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -208,13 +220,13 @@
 
                 ws.onclose = () => {
                     this.connected = false
-                    if (RECONNECT) {
+                    if (ws_request === ws) {
                         setTimeout(() => this.openRequest(), 3000)
                     }
                 }
             },
             openResponse () {
-                const ws = new WebSocket(`ws://${this.host()}/network/response`)
+                const ws = ws_response = new WebSocket(`ws://${this.host()}/network/response`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -239,7 +251,7 @@
                 }
 
                 ws.onclose = () => {
-                    if (RECONNECT) {
+                    if (ws_response === ws) {
                         setTimeout(() => this.openResponse(), 3000)
                     }
                 }
