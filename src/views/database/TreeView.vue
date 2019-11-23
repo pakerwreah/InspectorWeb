@@ -126,7 +126,6 @@
                     }
 
                     this.items = tables
-                    this.open = []
                 } else {
                     this.items = null
                 }

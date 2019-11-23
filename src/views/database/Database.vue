@@ -87,8 +87,14 @@
                 this.info = ''
                 try {
                     this.result = (await this.$http.post('/database/' + (script ? 'execute' : 'query'), sql)).data
+
                     setTimeout(() => this.resize(), 300)
+
                     this.info = 'Runtime: ' + formatDuration(this.result.duration)
+
+                    if (/(^|\s)(create|alter|drop)\s/ig.test(sql)) {
+                        await this.loadSchema(this.m_id)
+                    }
                 } catch (error) {
                     this.error = get(error, 'response.data.msg', error.message)
                 }
