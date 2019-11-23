@@ -47,65 +47,23 @@
         <pane :size="detail_size">
             <splitpanes class="default-theme fill-height" horizontal>
                 <pane>
-                    <div class="network-detail-container">
-                        {{ details.request.text }}
-
-                        <template v-if="selected !== undefined && selected_request.body.size">
-                            <v-tooltip v-if="details.request.large" color="#ffffff00" nudge-right="10px" left>
-                                <template v-slot:activator="{ on }">
-                                    <v-btn class="body-action" @click="download(selected_request, 'request')" v-on="on" fab x-small>
-                                        <v-icon>mdi-download</v-icon>
-                                    </v-btn>
-                                </template>
-                                <span>Download</span>
-                            </v-tooltip>
-                            <v-tooltip v-else color="#ffffff00" nudge-right="10px" left>
-                                <template v-slot:activator="{ on }">
-                                    <v-btn class="body-action" @click="copy(selected_request, 'Request')" v-on="on" fab x-small>
-                                        <v-icon>mdi-content-copy</v-icon>
-                                    </v-btn>
-                                </template>
-                                <span>Copy</span>
-                            </v-tooltip>
-                        </template>
-                    </div>
+                    <RequestViewer v-model="selected_request" />
                 </pane>
                 <pane>
-                    <div class="network-detail-container">
-                        {{ details.response.text }}
-
-                        <v-tooltip v-if="details.response.large" color="#ffffff00" nudge-right="10px" left>
-                            <template v-slot:activator="{ on }">
-                                <v-btn class="body-action" @click="download(selected_request.response, 'response')" v-on="on" fab x-small>
-                                    <v-icon>mdi-download</v-icon>
-                                </v-btn>
-                            </template>
-                            <span>Download</span>
-                        </v-tooltip>
-                        <v-tooltip v-else color="#ffffff00" nudge-right="10px" left>
-                            <template v-slot:activator="{ on }">
-                                <v-btn class="body-action" @click="copy(selected_request.response, 'Response')" v-on="on" fab x-small>
-                                    <v-icon>mdi-content-copy</v-icon>
-                                </v-btn>
-                            </template>
-                            <span>Copy</span>
-                        </v-tooltip>
-                    </div>
+                    <RequestViewer v-model="selected_response" />
                 </pane>
             </splitpanes>
         </pane>
-        <v-snackbar v-model="snackbar.visible" top color="success" :timeout="2000">{{ snackbar.text }}</v-snackbar>
     </splitpanes>
 </template>
 
 <script>
     import zlib from 'zlib'
     import { Splitpanes, Pane } from 'splitpanes'
-    import db from './database'
     import { sortBy } from 'lodash'
     import filesize from 'filesize'
-    import copy from 'copy-text-to-clipboard'
-    import saveAs from 'tiny-save-as'
+    import db from './database'
+    import RequestViewer from './RequestViewer'
 
     /** @type WebSocket */
     let ws_request = null
@@ -119,7 +77,7 @@
 
     export default {
         name: 'Network',
-        components: { Splitpanes, Pane },
+        components: { Splitpanes, Pane, RequestViewer },
         props: {
             currentPage: Boolean
         },
@@ -128,9 +86,7 @@
             session_list: [],
             requests: {},
             selected: undefined,
-            clear_visible: false,
-            details: { request: { text: '', large: false }, response: { text: '', large: false } },
-            snackbar: { visible: false, text: '' }
+            clear_visible: false
         }),
         computed: {
             detail_size () {
@@ -141,8 +97,18 @@
                 return len ? this.session_list[len - 1] : {}
             },
             selected_request () {
-                const requests = sortBy(Object.values(this.requests), 'timestamp')
-                return requests[this.selected]
+                if (this.selected !== undefined) {
+                    const requests = sortBy(Object.values(this.requests), 'timestamp')
+                    return requests[this.selected]
+                }
+                return undefined
+            },
+            selected_response () {
+                const req = this.selected_request
+                if (req) {
+                    return req.response
+                }
+                return undefined
             }
         },
         watch: {
@@ -153,15 +119,6 @@
                     }, 300)
                 } else {
                     this.clear_visible = false
-                }
-            },
-            selected (index) {
-                if (index !== undefined) {
-                    const req = this.selected_request
-                    const res = req.response || {}
-
-                    this.updateDetails(req, this.details.request, index)
-                    this.updateDetails(res, this.details.response, index)
                 }
             }
         },
@@ -276,38 +233,6 @@
                 this.selected = undefined
                 db.clearRequests()
             },
-            updateDetails (r, details, index) {
-                const raw_headers = r.raw_headers || ''
-
-                this.$set(details, 'text', raw_headers)
-                this.$set(details, 'large', false)
-
-                if (r.body) {
-                    if (r.body.size > 100000) {
-                        this.$set(details, 'large', true)
-                        this.$set(details, 'text', raw_headers + '\n[ Size: ' + filesize(r.body.size) + ' ]')
-                    } else {
-                        readBody(raw_headers, r.body).then(body => {
-                            if (this.selected === index) {
-                                this.$set(details, 'text', raw_headers + '\n' + body)
-                            }
-                        })
-                    }
-                }
-            },
-            download (r, filename) {
-                if (r) {
-                    saveAs(r.body, `${filename}_${r.timestamp}.txt`)
-                }
-            },
-            copy (r, label) {
-                if (r) {
-                    readBody(r.raw_headers, r.body).then(body => {
-                        copy(body)
-                        this.snackbar = { visible: true, text: `${label} copied successfully!` }
-                    })
-                }
-            },
             formatTimestamp (timestamp, full) {
                 const today = new Date()
                 const date = new Date(timestamp)
@@ -375,42 +300,16 @@
         }
         return false
     }
-
-    function readBody (headers, body) {
-        return new Promise(resolve => {
-            const reader = new FileReader()
-            reader.onloadend = (e) => {
-                resolve(e.target.result)
-            }
-            let encoding = 'utf-8'
-            const match = /charset=([^;\n ]+)/.exec(headers)
-            if (match) {
-                encoding = match[1]
-            }
-            reader.readAsText(body, encoding)
-        })
-    }
 </script>
 
 <style scoped lang="scss">
-    .network-container, .network-detail-container {
+    .network-container {
         position: absolute;
         left: 0;
         right: 0;
         bottom: 0;
         top: 0;
         overflow-y: auto;
-    }
-
-    .network-detail-container {
-        white-space: pre-line;
-        word-break: break-all;
-
-        .body-action {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-        }
     }
 
     .network-container {

@@ -22,7 +22,7 @@ export default new Vuetify({
         error: '#FF5252',
         controls: '#FFFFFF',
         selection_bg: '#666666',
-        text: '#000000',
+        text: '#616161',
         panel: '#f2f2f2'
       },
       dark: {
