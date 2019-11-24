@@ -58,7 +58,7 @@
             updateSearch () {
                 return debounce(i => {
                     this.$set(this.search_debounced, i, this.search[i])
-                }, Math.max(70 * this.items.length / 10000, 1000))
+                }, Math.min(70 * this.items.length / 10000, 1000))
             }
         }
     }
