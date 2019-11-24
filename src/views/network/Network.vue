@@ -10,10 +10,10 @@
                             <v-list-item class="request-item" two-line v-for="uid in s.requests" :key="uid">
                                 <v-list-item-content class="py-0">
                                     <v-list-item-title class="pt-2">
-                                        <span class="method" :class="requests[uid].headers.Method.toLowerCase()">{{ requests[uid].headers.Method }}</span>
-                                        {{ requests[uid].headers.URL.pathname }}
+                                        <span class="method" :class="requests[uid].headers.method.toLowerCase()">{{ requests[uid].headers.method }}</span>
+                                        {{ requests[uid].headers.url.pathname }}
                                     </v-list-item-title>
-                                    <v-list-item-subtitle class="origin pb-2">{{ requests[uid].headers.URL.origin }}</v-list-item-subtitle>
+                                    <v-list-item-subtitle class="origin pb-2">{{ requests[uid].headers.url.origin }}</v-list-item-subtitle>
                                 </v-list-item-content>
                                 <div class="mr-3">
                                     <table>
@@ -58,11 +58,11 @@
 </template>
 
 <script>
-    import zlib from 'zlib'
     import { Splitpanes, Pane } from 'splitpanes'
     import { sortBy } from 'lodash'
     import filesize from 'filesize'
     import db from './database'
+    import { decode, formatTimestamp } from './utils'
     import RequestViewer from './RequestViewer'
 
     /** @type WebSocket */
@@ -162,8 +162,6 @@
                         }
                         data.session = this.session.timestamp
                         data.timestamp = new Date().getTime()
-                        data.raw_headers = data.headers
-                        data.headers = parseHeaders(data.headers)
 
                         const r = this.session.requests
                         if (!r.includes(data.uid)) {
@@ -196,9 +194,7 @@
                         const request = this.requests[data.uid]
                         if (request) {
                             data.timestamp = new Date().getTime()
-                            data.raw_headers = data.headers
-                            data.headers = parseHeaders(data.headers)
-                            request.status = data.headers.Status
+                            request.status = data.headers.status
                             request.response = data
 
                             this.$set(this.requests, data.uid, { ...request })
@@ -233,11 +229,6 @@
                 this.selected = undefined
                 db.clearRequests()
             },
-            formatTimestamp (timestamp, full) {
-                const today = new Date()
-                const date = new Date(timestamp)
-                return (!full && today.toDateString() === date.toDateString()) ? date.toLocaleTimeString() : date.toLocaleString()
-            },
             statusColor (status) {
                 status = parseInt(status)
                 if (status === 200) {
@@ -255,50 +246,9 @@
                     return value + ' ms'
                 }
             },
-            filesize: v => filesize(v)
+            filesize: v => filesize(v),
+            formatTimestamp: v => formatTimestamp(v)
         }
-    }
-
-    function parseUrl (url) {
-        const a = document.createElement('a')
-        a.href = url
-        return { pathname: a.pathname, origin: a.origin }
-    }
-
-    function parseHeaders (headers, lowerkeys = false) {
-        const parsed = {}
-        for (const line of headers.split('\n')) {
-            const [key, value] = line.split(': ')
-            if (key) {
-                parsed[lowerkeys ? key.toLowerCase() : key] = value
-            }
-        }
-        parsed.URL = parseUrl(parsed.URL)
-        return parsed
-    }
-
-    function decode (msg) {
-        const data = new Uint8Array(msg.data)
-        let p = -1
-        for (let i = 0; i < data.length && p < 0; i++) {
-            if (String.fromCharCode(data[i]) === '\n' && String.fromCharCode(data[i + 1]) === '\n') {
-                p = i + 1
-            }
-        }
-
-        if (p >= 0) {
-            let enc = new TextDecoder('utf-8')
-            let headers = enc.decode(data.slice(0, p)).toString().split('\n')
-            const uid = headers.splice(0, 1).pop()
-            headers = headers.join('\n')
-
-            const h = parseHeaders(headers, true)
-
-            const body = new Blob([zlib.gunzipSync(Buffer.from(msg.data, p + 1))], { type: h['content-type'] })
-
-            return { uid, headers, body }
-        }
-        return false
     }
 </script>
 
