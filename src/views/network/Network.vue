@@ -123,6 +123,9 @@
             }
         },
         mounted () {
+            this.nextItem = this.nextItem.bind(this)
+            document.addEventListener('keydown', this.nextItem)
+
             this.clear_visible = this.currentPage
             this.getHistory().then(() => {
                 const div = this.$refs.scroll
@@ -132,6 +135,8 @@
             })
         },
         beforeDestroy () {
+            document.removeEventListener('keydown', this.nextItem)
+
             if (ws_request) {
                 ws_request.close()
                 ws_request = null
@@ -142,6 +147,15 @@
             }
         },
         methods: {
+            nextItem (e) {
+                if (this.selected !== undefined) {
+                    if (e.keyCode === 38 && this.selected > 0) {
+                        this.selected--
+                    } else if (e.keyCode === 40 && this.selected < Object.keys(this.requests).length - 1) {
+                        this.selected++
+                    }
+                }
+            },
             host () {
                 return this.$http.defaults.baseURL.substr(7)
             },
