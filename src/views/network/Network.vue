@@ -148,7 +148,7 @@
         },
         methods: {
             nextItem (e) {
-                if (this.selected !== undefined) {
+                if (this.currentPage && this.selected !== undefined) {
                     if (e.keyCode === 38 && this.selected > 0) {
                         this.selected--
                     } else if (e.keyCode === 40 && this.selected < Object.keys(this.requests).length - 1) {
