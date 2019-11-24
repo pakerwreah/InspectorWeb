@@ -274,9 +274,6 @@
         bottom: 0;
         top: 0;
         overflow-y: auto;
-    }
-
-    .network-container {
 
         .request-item {
             min-height: 0;

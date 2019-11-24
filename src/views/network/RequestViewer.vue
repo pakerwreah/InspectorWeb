@@ -1,20 +1,39 @@
 <template>
     <div class="network-detail-container">
-        <v-expansion-panels accordion v-model="open" :class="{'fill-height': !hasBody}">
-            <v-expansion-panel>
-                <v-expansion-panel-header v-if="hasBody">
-                    Headers
+        <v-expansion-panels accordion :value="open" :class="{'fill-height': !hasBody}">
+            <v-expansion-panel v-if="request">
+                <v-expansion-panel-header>
+                    <v-layout>
+                        <v-flex align-self-center>
+                            Headers
+                        </v-flex>
+                        <v-flex>
+                            <v-label>
+                                <small class="pointer">{{ request && formatTimestamp(request.timestamp, true) }}</small>
+                            </v-label>
+                        </v-flex>
+                    </v-layout>
                 </v-expansion-panel-header>
                 <v-expansion-panel-content :class="{'pt-2': !hasBody}">
-                    <!--suppress HtmlUnknownAttribute -->
+                    <!--suppress HtmlUnknownAttribute - don't break line inside <pre>, thanks! -->
                     <pre :class="codestyle" v-highlightjs="details.headers"><code class="http"></code></pre>
+                    <template v-if="params">
+                        <v-divider class="mt-2 mb-1" />
+                        <v-label>
+                            <small>Parameters:</small>
+                        </v-label>
+                        <!--suppress HtmlUnknownAttribute - don't break line inside <pre>, thanks! -->
+                        <pre class="ml-2" :class="codestyle" v-highlightjs="params"><code class="yaml"></code></pre>
+                    </template>
                 </v-expansion-panel-content>
             </v-expansion-panel>
             <v-expansion-panel v-if="hasBody">
                 <v-expansion-panel-header>
                     <v-layout>
-                        <v-flex xs11 align-self-center>Body</v-flex>
-                        <v-flex class="ml-2">
+                        <v-flex xs11 align-self-center>
+                            Body
+                        </v-flex>
+                        <v-flex class="ml-4">
                             <v-tooltip v-if="details.large" bottom>
                                 <template v-slot:activator="{ on }">
                                     <v-btn icon @click.stop="download" v-on="on" x-small>
@@ -35,13 +54,12 @@
                     </v-layout>
                 </v-expansion-panel-header>
                 <v-expansion-panel-content>
-                    <!--suppress HtmlUnknownAttribute -->
-                    <!-- don't break line inside <pre>, thanks! -->
+                    <!--suppress HtmlUnknownAttribute - don't break line inside <pre>, thanks! -->
                     <pre v-if="json || html" :class="codestyle" v-highlightjs="details.body"><code :class="{json, html}"></code></pre>
 
-                    <template v-else>
+                    <v-label v-else>
                         {{ details.body }}
-                    </template>
+                    </v-label>
                 </v-expansion-panel-content>
             </v-expansion-panel>
         </v-expansion-panels>
@@ -55,6 +73,7 @@
     import copy from 'copy-text-to-clipboard'
     import saveAs from 'tiny-save-as'
     import filesize from 'filesize'
+    import { parseHeaders, formatTimestamp } from './utils'
 
     export default {
         name: 'RequestViewer',
@@ -62,22 +81,56 @@
             value: Object
         },
         data: () => ({
-            open: null,
             details: { headers: '', body: '', large: false },
             snackbar: { visible: false, text: '' }
         }),
         computed: {
+            open () {
+                return (this.hasBody && !this.urlencoded) ? 1 : 0
+            },
             codestyle () {
                 return this.dark_mode ? 'dark' : 'light'
             },
             request () {
                 return this.value
             },
+            headers () {
+                return (this.request && this.request.headers) || {}
+            },
+            raw_headers () {
+                return (this.request && this.request.raw_headers) || ''
+            },
+            params () {
+                const params = this.get ? parseHeaders(this.raw_headers).url.search : (this.urlencoded && this.details.body)
+                if (params) {
+                    return params
+                        .split(/[?&]/)
+                        .map(it => it.replace('=', ': '))
+                        .join('\n')
+                        .trim()
+                }
+
+                return null
+            },
+            contentType () {
+                return this.headers['content-type'] || ''
+            },
+            get () {
+                return this.headers.method === 'GET'
+            },
             json () {
-                return this.details.headers.toLowerCase().includes('content-type: application/json') || (this.hasBody && ['{', '['].some(c => this.details.body.startsWith(c)))
+                return this.contentType.includes('application/json') || (this.hasBody && ['{', '['].some(c => this.details.body.startsWith(c)))
             },
             html () {
-                return this.details.headers.toLowerCase().includes('content-type: text/html')
+                return this.contentType.includes('text/html')
+            },
+            urlencoded () {
+                const body = this.details.body
+                return this.contentType.includes('application/x-www-form-urlencoded') || (
+                    !this.json && !body.includes('\n') && (
+                        body.startsWith('?') || body.includes('=') || body.includes('&')
+                    )
+                )
             },
             hasBody () {
                 return this.request && this.request.body.size
@@ -93,15 +146,12 @@
         },
         methods: {
             updateDetails () {
+                this.details = { headers: '', body: '', large: false }
                 const r = this.request
                 if (r) {
-                    this.open = this.hasBody ? 1 : 0
-
-                    const raw_headers = r.raw_headers || ''
+                    const raw_headers = r.raw_headers
 
                     this.$set(this.details, 'headers', raw_headers)
-                    this.$set(this.details, 'body', '')
-                    this.$set(this.details, 'large', false)
 
                     if (r.body) {
                         if (r.body.size > 100000) {
@@ -131,7 +181,8 @@
                     copy(body)
                     this.snackbar = { visible: true, text: `Content copied successfully!` }
                 })
-            }
+            },
+            formatTimestamp: (v, full) => formatTimestamp(v, full)
         }
     }
 
