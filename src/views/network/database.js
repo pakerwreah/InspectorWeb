@@ -1,9 +1,12 @@
 function getDB () {
   return new Promise((resolve, reject) => {
-    const idb = indexedDB.open('network', 1)
+    const idb = indexedDB.open('network', 2)
 
     idb.onupgradeneeded = (e) => {
       const db = e.target.result
+      if (db.objectStoreNames.contains('requests')) {
+        db.deleteObjectStore('requests')
+      }
       db.createObjectStore('requests', { keyPath: 'uid' })
     }
 
