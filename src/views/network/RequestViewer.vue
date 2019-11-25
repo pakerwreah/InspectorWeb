@@ -119,7 +119,7 @@
                 return this.headers.method === 'GET'
             },
             json () {
-                return this.contentType.includes('application/json') || (this.hasBody && ['{', '['].some(c => this.details.body.startsWith(c)))
+                return this.contentType.includes('application/json') || (this.hasBody && ['{', '['].includes(this.details.body[0]))
             },
             html () {
                 return this.contentType.includes('text/html')
@@ -160,7 +160,7 @@
                         } else {
                             readBody(raw_headers, r.body).then(body => {
                                 if (this.request === r) {
-                                    if (this.json) {
+                                    if (this.json || ['{', '['].includes(body[0])) {
                                         const parsed = JSON.parse(body)
                                         if (parsed) {
                                             body = JSON.stringify(parsed, null, 2)
