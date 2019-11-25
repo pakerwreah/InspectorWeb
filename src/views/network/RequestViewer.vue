@@ -1,6 +1,6 @@
 <template>
     <div class="network-detail-container">
-        <v-expansion-panels accordion :value="open" :class="{'fill-height': !hasBody}">
+        <v-expansion-panels accordion :value="open">
             <v-expansion-panel v-if="request">
                 <v-expansion-panel-header>
                     <v-layout>
