@@ -14,7 +14,7 @@
                         </v-flex>
                     </v-layout>
                 </v-expansion-panel-header>
-                <v-expansion-panel-content :class="{'pt-2': !hasBody}">
+                <v-expansion-panel-content>
                     <!--suppress HtmlUnknownAttribute - don't break line inside <pre>, thanks! -->
                     <pre :class="codestyle" v-highlightjs="details.headers"><code class="http"></code></pre>
                     <template v-if="params">

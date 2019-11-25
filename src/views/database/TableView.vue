@@ -156,6 +156,8 @@
         watch: {
             result () {
                 this.fillVisible(true)
+                this.search.fill('')
+                this.search_debounced.fill('')
             },
             columns_filter_popup (on) {
                 if (on) {
