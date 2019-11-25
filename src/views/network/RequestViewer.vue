@@ -73,7 +73,7 @@
     import copy from 'copy-text-to-clipboard'
     import saveAs from 'tiny-save-as'
     import filesize from 'filesize'
-    import { parseHeaders, formatTimestamp } from './utils'
+    import { formatTimestamp } from './utils'
 
     export default {
         name: 'RequestViewer',
@@ -101,7 +101,7 @@
                 return (this.request && this.request.raw_headers) || ''
             },
             params () {
-                const params = this.get ? parseHeaders(this.raw_headers).url.search : (this.urlencoded && this.details.body)
+                const params = this.get ? this.headers.url.search : (this.urlencoded && this.details.body)
                 if (params) {
                     return params
                         .split(/[?&]/)
