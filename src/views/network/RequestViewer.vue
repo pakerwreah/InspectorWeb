@@ -1,7 +1,7 @@
 <template>
     <div class="network-detail-container">
-        <v-expansion-panels accordion :value="open">
-            <v-expansion-panel v-if="request">
+        <v-expansion-panels v-if="request" :value="open" accordion>
+            <v-expansion-panel>
                 <v-expansion-panel-header>
                     <v-layout>
                         <v-flex align-self-center>
@@ -9,7 +9,7 @@
                         </v-flex>
                         <v-flex>
                             <v-label>
-                                <small class="pointer">{{ request && formatTimestamp(request.timestamp, true) }}</small>
+                                <small class="pointer">{{ formatTimestamp(request.timestamp, true) }}</small>
                             </v-label>
                         </v-flex>
                     </v-layout>
@@ -133,7 +133,7 @@
                 )
             },
             hasBody () {
-                return this.request && this.request.body.size
+                return !!(this.request && this.request.body.size)
             }
         },
         watch: {
