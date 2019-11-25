@@ -20,7 +20,9 @@
                     <div class="error--text ma-2">{{ error }}</div>
                 </pane>
                 <pane v-else-if="result">
-                    <TableView :result="result" :loading="loading" />
+                    <TableView :result="result"
+                               :loading="loading"
+                               @reload="reloadQuery" />
                     <div class="result-info">{{ info }}</div>
                 </pane>
             </splitpanes>
@@ -64,7 +66,8 @@
             result: null,
             error: null,
             loading: false,
-            info: ''
+            info: '',
+            last_query: null
         }),
         mounted () {
             this.getDatabases()
@@ -76,17 +79,23 @@
             resize () {
                 this.$refs.console.$emit('resize')
             },
+            reloadQuery () {
+                this.query(this.last_query)
+            },
             queryTable (table) {
                 this.query(`SELECT * FROM ${table}`)
             },
             async query (sql, script) {
                 if (this.loading) return
 
+                this.last_query = null
                 this.error = null
                 this.loading = true
                 this.info = ''
                 try {
                     this.result = (await this.$http.post('/database/' + (script ? 'execute' : 'query'), sql)).data
+
+                    this.last_query = sql
 
                     setTimeout(() => this.resize(), 300)
 

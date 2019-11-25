@@ -23,7 +23,8 @@ export default new Vuetify({
         controls: '#FFFFFF',
         selection_bg: '#666666',
         text: '#616161',
-        panel: '#f2f2f2'
+        panel: '#f2f2f2',
+        controls_border: '#D5D5D5'
       },
       dark: {
         primary: '#21CFF3',
@@ -36,7 +37,8 @@ export default new Vuetify({
         controls: '#424242',
         selection_bg: '#CCCCCC',
         text: '#FFFFFF',
-        panel: '#303030'
+        panel: '#303030',
+        controls_border: '#494949'
       }
     }
   }
