@@ -179,7 +179,7 @@
             copy () {
                 readBody(this.request.raw_headers, this.request.body).then(body => {
                     copy(body)
-                    this.snackbar = { visible: true, text: `Content copied successfully!` }
+                    this.snackbar = { visible: true, text: 'Content copied successfully!' }
                 })
             },
             formatTimestamp: (v, full) => formatTimestamp(v, full)

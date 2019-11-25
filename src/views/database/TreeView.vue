@@ -21,7 +21,7 @@
                     {{ item.name }}
                 </v-flex>
             </template>
-            <template v-slot:append="{ item, leaf }">
+            <template v-slot:append="{ item }">
                 <span class="noselect accent--text text-lowercase pt-1 pl-2" style="font-size: 10px">
                     {{ item.type }}
                 </span>

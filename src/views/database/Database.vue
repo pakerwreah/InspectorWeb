@@ -41,7 +41,7 @@
     function formatDuration (duration) {
         const { sec, usec } = duration
 
-        let msg = []
+        const msg = []
 
         if (sec) {
             msg.push(`${sec} second` + (sec > 1 ? 's' : ''))
@@ -156,7 +156,7 @@
                             const sql_tables = `
                                 SELECT name
                                 FROM sqlite_master
-                                WHERE type = 'table' AND name != 'sqlite_sequence'
+                                WHERE type = 'table' AND name NOT IN ('android_metadata', 'sqlite_sequence')
                                 ORDER BY name
                             `
                             const r = await this.$http.post('/database/query', sql_tables)
