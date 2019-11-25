@@ -61,11 +61,12 @@
         <v-progress-circular
                 v-else
                 :value="progress"
+                :indeterminate="progress < 0"
                 size="80"
                 width="2"
                 color="primary"
                 class="ma-auto align-self-center progress">
-            {{ progress }}%
+            <span v-if="progress >= 0">{{ progress }}%</span>
         </v-progress-circular>
     </div>
 </template>
@@ -125,7 +126,6 @@
                     }
 
                     this.items = tables
-                    this.open = []
                 } else {
                     this.items = null
                 }

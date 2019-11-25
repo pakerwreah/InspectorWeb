@@ -1,7 +1,7 @@
 <template>
     <div class="console-wrapper">
         <div class="d-flex align-center">
-            <v-btn icon small class="ml-3" color="success" @click="executeQuery">
+            <v-btn icon small class="ml-2" color="success" @click="executeQuery">
                 <v-icon>mdi-play</v-icon>
             </v-btn>
             <v-spacer />

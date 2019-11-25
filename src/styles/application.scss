@@ -4,7 +4,12 @@ html {
 
 #app {
     .noselect {
+        cursor: default;
         user-select: none;
+    }
+
+    .pointer {
+        cursor: pointer;
     }
 
     // stepper
@@ -55,6 +60,7 @@ html {
         .splitpanes__pane {
             overflow: auto;
             position: relative;
+            border: solid 1px var(--v-controls-darken1);
 
             ::-webkit-scrollbar {
                 width: 10px;
@@ -94,7 +100,7 @@ html {
             .splitpanes__splitter {
                 background-color: var(--v-controls-base);
 
-                border-color: transparent;
+                border-color: var(--v-controls-darken1);
 
                 &::before, &::after {
                     background-color: var(--v-controls-darken4);

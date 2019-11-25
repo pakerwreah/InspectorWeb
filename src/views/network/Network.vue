@@ -10,10 +10,10 @@
                             <v-list-item class="request-item" two-line v-for="uid in s.requests" :key="uid">
                                 <v-list-item-content class="py-0">
                                     <v-list-item-title class="pt-2">
-                                        <span class="method" :class="requests[uid].headers.Method.toLowerCase()">{{ requests[uid].headers.Method }}</span>
-                                        {{ requests[uid].headers.URL.pathname }}
+                                        <span class="method" :class="requests[uid].headers.method.toLowerCase()">{{ requests[uid].headers.method }}</span>
+                                        {{ requests[uid].headers.url.pathname }}
                                     </v-list-item-title>
-                                    <v-list-item-subtitle class="origin pb-2">{{ requests[uid].headers.URL.origin }}</v-list-item-subtitle>
+                                    <v-list-item-subtitle class="origin pb-2">{{ requests[uid].headers.url.origin }}</v-list-item-subtitle>
                                 </v-list-item-content>
                                 <div class="mr-3">
                                     <table>
@@ -47,68 +47,28 @@
         <pane :size="detail_size">
             <splitpanes class="default-theme fill-height" horizontal>
                 <pane>
-                    <div class="network-detail-container">
-                        {{ details.request.text }}
-
-                        <template v-if="selected !== undefined && selected_request.body.size">
-                            <v-tooltip v-if="details.request.large" color="#ffffff00" nudge-right="10px" left>
-                                <template v-slot:activator="{ on }">
-                                    <v-btn class="body-action" @click="download(selected_request, 'request')" v-on="on" fab x-small>
-                                        <v-icon>mdi-download</v-icon>
-                                    </v-btn>
-                                </template>
-                                <span>Download</span>
-                            </v-tooltip>
-                            <v-tooltip v-else color="#ffffff00" nudge-right="10px" left>
-                                <template v-slot:activator="{ on }">
-                                    <v-btn class="body-action" @click="copy(selected_request, 'Request')" v-on="on" fab x-small>
-                                        <v-icon>mdi-content-copy</v-icon>
-                                    </v-btn>
-                                </template>
-                                <span>Copy</span>
-                            </v-tooltip>
-                        </template>
-                    </div>
+                    <RequestViewer v-model="selected_request" />
                 </pane>
                 <pane>
-                    <div class="network-detail-container">
-                        {{ details.response.text }}
-
-                        <v-tooltip v-if="details.response.large" color="#ffffff00" nudge-right="10px" left>
-                            <template v-slot:activator="{ on }">
-                                <v-btn class="body-action" @click="download(selected_request.response, 'response')" v-on="on" fab x-small>
-                                    <v-icon>mdi-download</v-icon>
-                                </v-btn>
-                            </template>
-                            <span>Download</span>
-                        </v-tooltip>
-                        <v-tooltip v-else color="#ffffff00" nudge-right="10px" left>
-                            <template v-slot:activator="{ on }">
-                                <v-btn class="body-action" @click="copy(selected_request.response, 'Response')" v-on="on" fab x-small>
-                                    <v-icon>mdi-content-copy</v-icon>
-                                </v-btn>
-                            </template>
-                            <span>Copy</span>
-                        </v-tooltip>
-                    </div>
+                    <RequestViewer v-model="selected_response" />
                 </pane>
             </splitpanes>
         </pane>
-        <v-snackbar v-model="snackbar.visible" top color="success" :timeout="2000">{{ snackbar.text }}</v-snackbar>
     </splitpanes>
 </template>
 
 <script>
-    import zlib from 'zlib'
     import { Splitpanes, Pane } from 'splitpanes'
-    import db from './database'
     import { sortBy } from 'lodash'
     import filesize from 'filesize'
-    import copy from 'copy-text-to-clipboard'
-    import saveAs from 'tiny-save-as'
+    import db from './database'
+    import { decode, formatTimestamp } from './utils'
+    import RequestViewer from './RequestViewer'
 
-    // issues with hot reload =/
-    const RECONNECT = process.env.NODE_ENV !== 'development'
+    /** @type WebSocket */
+    let ws_request = null
+    /** @type WebSocket */
+    let ws_response = null
 
     const newSession = () => ({
         timestamp: new Date().getTime(),
@@ -117,7 +77,7 @@
 
     export default {
         name: 'Network',
-        components: { Splitpanes, Pane },
+        components: { Splitpanes, Pane, RequestViewer },
         props: {
             currentPage: Boolean
         },
@@ -126,9 +86,7 @@
             session_list: [],
             requests: {},
             selected: undefined,
-            clear_visible: false,
-            details: { request: { text: '', large: false }, response: { text: '', large: false } },
-            snackbar: { visible: false, text: '' }
+            clear_visible: false
         }),
         computed: {
             detail_size () {
@@ -139,8 +97,18 @@
                 return len ? this.session_list[len - 1] : {}
             },
             selected_request () {
-                const requests = sortBy(Object.values(this.requests), 'timestamp')
-                return requests[this.selected]
+                if (this.selected !== undefined) {
+                    const requests = sortBy(Object.values(this.requests), 'timestamp')
+                    return requests[this.selected]
+                }
+                return undefined
+            },
+            selected_response () {
+                const req = this.selected_request
+                if (req) {
+                    return req.response
+                }
+                return undefined
             }
         },
         watch: {
@@ -152,18 +120,12 @@
                 } else {
                     this.clear_visible = false
                 }
-            },
-            selected (index) {
-                if (index !== undefined) {
-                    const req = this.selected_request
-                    const res = req.response || {}
-
-                    this.updateDetails(req, this.details.request, index)
-                    this.updateDetails(res, this.details.response, index)
-                }
             }
         },
         mounted () {
+            this.nextItem = this.nextItem.bind(this)
+            document.addEventListener('keydown', this.nextItem)
+
             this.clear_visible = this.currentPage
             this.getHistory().then(() => {
                 const div = this.$refs.scroll
@@ -172,12 +134,33 @@
                 this.openResponse()
             })
         },
+        beforeDestroy () {
+            document.removeEventListener('keydown', this.nextItem)
+
+            if (ws_request) {
+                ws_request.close()
+                ws_request = null
+            }
+            if (ws_response) {
+                ws_response.close()
+                ws_response = null
+            }
+        },
         methods: {
+            nextItem (e) {
+                if (this.currentPage && this.selected !== undefined) {
+                    if (e.keyCode === 38 && this.selected > 0) {
+                        this.selected--
+                    } else if (e.keyCode === 40 && this.selected < Object.keys(this.requests).length - 1) {
+                        this.selected++
+                    }
+                }
+            },
             host () {
                 return this.$http.defaults.baseURL.substr(7)
             },
             openRequest () {
-                const ws = new WebSocket(`ws://${this.host()}/network/request`)
+                const ws = ws_request = new WebSocket(`ws://${this.host()}/network/request`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -193,8 +176,6 @@
                         }
                         data.session = this.session.timestamp
                         data.timestamp = new Date().getTime()
-                        data.raw_headers = data.headers
-                        data.headers = parseHeaders(data.headers)
 
                         const r = this.session.requests
                         if (!r.includes(data.uid)) {
@@ -208,13 +189,13 @@
 
                 ws.onclose = () => {
                     this.connected = false
-                    if (RECONNECT) {
+                    if (ws_request === ws) {
                         setTimeout(() => this.openRequest(), 3000)
                     }
                 }
             },
             openResponse () {
-                const ws = new WebSocket(`ws://${this.host()}/network/response`)
+                const ws = ws_response = new WebSocket(`ws://${this.host()}/network/response`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -227,9 +208,7 @@
                         const request = this.requests[data.uid]
                         if (request) {
                             data.timestamp = new Date().getTime()
-                            data.raw_headers = data.headers
-                            data.headers = parseHeaders(data.headers)
-                            request.status = data.headers.Status
+                            request.status = data.headers.status
                             request.response = data
 
                             this.$set(this.requests, data.uid, { ...request })
@@ -239,7 +218,7 @@
                 }
 
                 ws.onclose = () => {
-                    if (RECONNECT) {
+                    if (ws_response === ws) {
                         setTimeout(() => this.openResponse(), 3000)
                     }
                 }
@@ -264,43 +243,6 @@
                 this.selected = undefined
                 db.clearRequests()
             },
-            updateDetails (r, details, index) {
-                const raw_headers = r.raw_headers || ''
-
-                this.$set(details, 'text', raw_headers)
-                this.$set(details, 'large', false)
-
-                if (r.body) {
-                    if (r.body.size > 100000) {
-                        this.$set(details, 'large', true)
-                        this.$set(details, 'text', raw_headers + '\n[ Size: ' + filesize(r.body.size) + ' ]')
-                    } else {
-                        readBody(raw_headers, r.body).then(body => {
-                            if (this.selected === index) {
-                                this.$set(details, 'text', raw_headers + '\n' + body)
-                            }
-                        })
-                    }
-                }
-            },
-            download (r, filename) {
-                if (r) {
-                    saveAs(r.body, `${filename}_${r.timestamp}.txt`)
-                }
-            },
-            copy (r, label) {
-                if (r) {
-                    readBody(r.raw_headers, r.body).then(body => {
-                        copy(body)
-                        this.snackbar = { visible: true, text: `${label} copied successfully!` }
-                    })
-                }
-            },
-            formatTimestamp (timestamp, full) {
-                const today = new Date()
-                const date = new Date(timestamp)
-                return (!full && today.toDateString() === date.toDateString()) ? date.toLocaleTimeString() : date.toLocaleString()
-            },
             statusColor (status) {
                 status = parseInt(status)
                 if (status === 200) {
@@ -318,90 +260,20 @@
                     return value + ' ms'
                 }
             },
-            filesize: v => filesize(v)
+            filesize: v => filesize(v),
+            formatTimestamp: v => formatTimestamp(v)
         }
-    }
-
-    function parseUrl (url) {
-        const a = document.createElement('a')
-        a.href = url
-        return { pathname: a.pathname, origin: a.origin }
-    }
-
-    function parseHeaders (headers, lowerkeys = false) {
-        const parsed = {}
-        for (const line of headers.split('\n')) {
-            const [key, value] = line.split(': ')
-            if (key) {
-                parsed[lowerkeys ? key.toLowerCase() : key] = value
-            }
-        }
-        parsed.URL = parseUrl(parsed.URL)
-        return parsed
-    }
-
-    function decode (msg) {
-        const data = new Uint8Array(msg.data)
-        let p = -1
-        for (let i = 0; i < data.length && p < 0; i++) {
-            if (String.fromCharCode(data[i]) === '\n' && String.fromCharCode(data[i + 1]) === '\n') {
-                p = i + 1
-            }
-        }
-
-        if (p >= 0) {
-            let enc = new TextDecoder('utf-8')
-            let headers = enc.decode(data.slice(0, p)).toString().split('\n')
-            const uid = headers.splice(0, 1).pop()
-            headers = headers.join('\n')
-
-            const h = parseHeaders(headers, true)
-
-            const body = new Blob([zlib.gunzipSync(Buffer.from(msg.data, p + 1))], { type: h['content-type'] })
-
-            return { uid, headers, body }
-        }
-        return false
-    }
-
-    function readBody (headers, body) {
-        return new Promise(resolve => {
-            const reader = new FileReader()
-            reader.onloadend = (e) => {
-                resolve(e.target.result)
-            }
-            let encoding = 'utf-8'
-            const match = /charset=([^;\n ]+)/.exec(headers)
-            if (match) {
-                encoding = match[1]
-            }
-            reader.readAsText(body, encoding)
-        })
     }
 </script>
 
 <style scoped lang="scss">
-    .network-container, .network-detail-container {
+    .network-container {
         position: absolute;
         left: 0;
         right: 0;
         bottom: 0;
         top: 0;
         overflow-y: auto;
-    }
-
-    .network-detail-container {
-        white-space: pre-line;
-        word-break: break-all;
-
-        .body-action {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-        }
-    }
-
-    .network-container {
 
         .request-item {
             min-height: 0;
