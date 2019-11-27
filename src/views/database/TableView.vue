@@ -195,6 +195,7 @@
         },
         created () {
             this.onScroll = this.onScroll.bind(this)
+            this.keyboard = throttle(this.keyboard, 100)
         },
         mounted () {
             // hot reload aware
@@ -234,22 +235,30 @@
                 dt.scrollTo({ left, behavior: 'smooth' })
                 cols[i].classList.add('primary--text')
             },
-            keyboard: throttle(function (e) {
+            keyboard (e) {
+                const ENTER = 13
+                const SPACE = 32
+                const ARROW_UP = 38
+                const ARROW_DOWN = 40
+
                 const key = e.keyCode
 
                 const listed = this.columns_filter_listed
 
                 let i = this.columns_filter_selected
 
-                const ENTER = 13
-                const SPACE = 32
-                const ARROW_UP = 38
-                const ARROW_DOWN = 40
+                const start = listed.indexOf(true)
+                const end = listed.lastIndexOf(true)
 
                 switch (key) {
                     case ENTER: {
-                        if (i >= 0 && this.visible[i]) {
+                        if (i < 0) {
+                            do { i++ } while (i <= end && !(listed[i] && this.visible[i]))
+                        }
+
+                        if (i >= 0 && i <= end) {
                             this.gotoColumn(i)
+                            this.columns_filter_popup = false
                         }
                         break
                     }
@@ -264,20 +273,17 @@
                     case ARROW_DOWN: {
                         e.preventDefault()
 
-                        const start = listed.indexOf(true)
-                        const end = listed.lastIndexOf(true)
-
                         if (key === ARROW_UP) {
                             if (i < 0 || !listed[i]) {
                                 i = end
                             } else {
-                                do { i-- } while (i > 0 && !listed[i])
+                                do { i-- } while (i >= 0 && !listed[i])
                             }
-                        } else if (key === ARROW_DOWN) {
+                        } else {
                             if (i < 0 || !listed[i]) {
                                 i = start
                             } else {
-                                do { i++ } while (i < end && !listed[i])
+                                do { i++ } while (i <= end && !listed[i])
                             }
                         }
 
@@ -291,7 +297,7 @@
                         break
                     }
                 }
-            }, 100)
+            }
         }
     }
 </script>
