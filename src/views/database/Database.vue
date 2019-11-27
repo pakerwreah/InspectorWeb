@@ -16,14 +16,14 @@
                                 @query="query" />
                     <v-overlay absolute :value="!schema.tables" />
                 </pane>
-                <pane v-if="error">
-                    <div class="error--text ma-2">{{ error }}</div>
-                </pane>
-                <pane v-else-if="result">
-                    <TableView :result="result"
+                <pane v-if="loading || error || result">
+                    <div v-if="error" class="error--text ma-2">{{ error }}</div>
+                    <TableView v-show="loading || (!error && result)"
+                               :sql="last_query"
+                               :result="result"
                                :loading="loading"
-                               @reload="reloadQuery" />
-                    <div class="result-info">{{ info }}</div>
+                               @reload="query" />
+                    <div v-if="!error && result" class="result-info">{{ info }}</div>
                 </pane>
             </splitpanes>
         </pane>
@@ -79,16 +79,12 @@
             resize () {
                 this.$refs.console.$emit('resize')
             },
-            reloadQuery () {
-                this.query(this.last_query)
-            },
             queryTable (table) {
                 this.query(`SELECT * FROM ${table}`)
             },
             async query (sql, script) {
                 if (this.loading) return
 
-                this.last_query = null
                 this.error = null
                 this.loading = true
                 this.info = ''

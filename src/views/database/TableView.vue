@@ -111,6 +111,7 @@
     export default {
         name: 'TableView',
         props: {
+            sql: String,
             result: Object,
             loading: Boolean
         },
@@ -137,7 +138,7 @@
             toolbar_buttons () {
                 return [
                     { icon: 'mdi-table-row-remove', color: 'selection_bg', tooltip: 'Filter columns', action: () => this.showColumnFilter() },
-                    { icon: 'mdi-sync', color: 'primary', tooltip: 'Reload', action: () => this.$emit('reload') }
+                    { icon: 'mdi-sync', color: 'primary', tooltip: 'Reload', action: () => this.$emit('reload', this.sql) }
                 ]
             },
             headers () {
