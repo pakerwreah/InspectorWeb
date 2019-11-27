@@ -21,7 +21,7 @@ export default new Vuetify({
         warning: '#FB8C00',
         error: '#FF5252',
         controls: '#FFFFFF',
-        selection_bg: '#666666',
+        neutral: '#666666',
         text: '#616161',
         panel: '#f2f2f2',
         controls_border: '#D5D5D5'
@@ -35,7 +35,7 @@ export default new Vuetify({
         warning: '#FB8C00',
         error: '#FF5252',
         controls: '#424242',
-        selection_bg: '#CCCCCC',
+        neutral: '#CCCCCC',
         text: '#FFFFFF',
         panel: '#303030',
         controls_border: '#494949'

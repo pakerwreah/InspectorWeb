@@ -141,7 +141,7 @@
             },
             toolbar_buttons () {
                 return [
-                    { icon: 'mdi-table-row-remove', color: 'selection_bg', tooltip: 'Filter columns', action: () => this.showColumnFilter() },
+                    { icon: 'mdi-table-row-remove', color: 'neutral', tooltip: 'Filter columns', action: () => this.showColumnFilter() },
                     { icon: 'mdi-sync', color: 'primary', tooltip: 'Reload', action: () => this.$emit('reload', this.sql) }
                 ]
             },

@@ -150,7 +150,7 @@
             flex: 0;
 
             .v-icon {
-                color: var(--v-selection_bg-base) !important;
+                color: var(--v-neutral-base) !important;
             }
 
             .v-input__slot {
@@ -186,7 +186,7 @@
             }
 
             .v-treeview-node__root::before {
-                background-color: var(--v-selection_bg-base);
+                background-color: var(--v-neutral-base);
             }
 
             .v-treeview-node--leaf > .v-treeview-node__root {

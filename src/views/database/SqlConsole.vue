@@ -157,7 +157,7 @@
             margin-right: 0;
 
             .v-icon {
-                color: var(--v-selection_bg-base);
+                color: var(--v-neutral-base);
             }
         }
     }
