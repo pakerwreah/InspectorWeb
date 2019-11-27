@@ -7,6 +7,7 @@
                 :headers="headers"
                 :items="items"
                 :items-per-page="10"
+                :sort-by="sort"
                 height="100%"
                 dense
                 fixed-header
@@ -106,7 +107,7 @@
 </template>
 
 <script>
-    import { zipObject, get, debounce, throttle } from 'lodash'
+    import { zipObject, get, debounce, throttle, isEqual } from 'lodash'
 
     export default {
         name: 'TableView',
@@ -121,7 +122,10 @@
             columns_filter_popup: false,
             column_search: '',
             visible: [],
-            columns_filter_selected: -1
+            columns_filter_selected: -1,
+            sort: [],
+            last_headers: [],
+            scroll: 0
         }),
         computed: {
             visible_all: {
@@ -143,10 +147,11 @@
             },
             headers () {
                 const filter = i => value => !(this.search_debounced[i] || '').length || String(value).toLowerCase().includes(this.search_debounced[i].toLowerCase())
-                return this.loading ? [] : get(this.result, 'headers', []).map((r, i) => ({ text: r, value: r, align: this.visible[i] ? '' : ' d-none', filter: filter(i) }))
+                return this.loading ? [] : get(this.result, 'headers', []).map((r, i) => ({ text: r, value: i.toString(), align: this.visible[i] ? '' : ' d-none', filter: filter(i) }))
             },
             items () {
-                return this.loading ? [] : get(this.result, 'data', []).map(r => zipObject(this.result.headers, r))
+                const keys = Object.keys(get(this.result, 'headers', []))
+                return this.loading ? [] : get(this.result, 'data', []).map(r => zipObject(keys, r))
             },
             updateSearch () {
                 return debounce(i => {
@@ -155,10 +160,22 @@
             }
         },
         watch: {
-            result () {
-                this.fillVisible(true)
-                this.search.fill('')
-                this.search_debounced.fill('')
+            result (result) {
+                if (result) {
+                    if (!isEqual(result.headers, this.last_headers)) {
+                        this.last_headers = result.headers
+                        this.fillVisible(true)
+                        this.search.fill('')
+                        this.search_debounced.fill('')
+                        this.sort = []
+                        this.scroll = 0
+                    }
+                    requestAnimationFrame(() => {
+                        const dt = this.$refs.dt.$el.querySelector('.v-data-table__wrapper')
+                        dt.addEventListener('scroll', this.onScroll)
+                        dt.scrollTo({ left: this.scroll })
+                    })
+                }
             },
             columns_filter_popup (on) {
                 if (on) {
@@ -176,11 +193,19 @@
                 }
             }
         },
+        created () {
+            this.onScroll = this.onScroll.bind(this)
+        },
         mounted () {
             // hot reload aware
             this.fillVisible(true)
         },
         methods: {
+            onScroll (e) {
+                if (!this.loading) {
+                    this.scroll = e.target.scrollLeft
+                }
+            },
             fillVisible (value) {
                 if (this.headers) {
                     this.visible = Array(this.headers.length).fill(value)
