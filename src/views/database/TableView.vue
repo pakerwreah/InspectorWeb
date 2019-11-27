@@ -47,70 +47,20 @@
                 </v-tooltip>
             </template>
         </div>
-        <v-dialog v-model="columns_filter_popup"
-                  width="300"
-                  overlay-opacity="0.1"
-                  attach=".result-container"
-                  content-class="column-filter-popup"
-                  scrollable
-                  @keydown="keyboard">
-            <v-card>
-                <v-card-title class="panel pa-1 px-2">
-                    <v-layout>
-                        <v-flex xs1 align-self-center>
-                            <v-checkbox v-model="visible_all"
-                                        class="my-1 py-0"
-                                        dense hide-details />
-                        </v-flex>
-                        <v-flex align-self-center>
-                            <v-text-field ref="column_search"
-                                          v-model="column_search"
-                                          class="result-search ml-2"
-                                          append-icon="mdi-magnify"
-                                          background-color="controls"
-                                          autocomplete="disabled"
-                                          spellcheck="false"
-                                          dense
-                                          hide-details
-                                          autofocus
-                                          clearable />
-                        </v-flex>
-                    </v-layout>
-                </v-card-title>
-
-                <v-card-text class="columns_filter_body px-2 py-2" style="max-height: 300px">
-                    <template v-for="(h,i) in headers">
-                        <v-hover v-slot:default="{ hover }" :key="i">
-                            <v-layout v-show="columns_filter_listed[i]" class="columns_filter_item" :class="{selected: columns_filter_selected === i}">
-                                <v-flex xs1 align-self-center>
-                                    <v-checkbox v-model="visible[i]"
-                                                class="my-0 py-1 mr-2"
-                                                dense hide-details />
-                                </v-flex>
-                                <v-flex class="ml-2 align-stretch">
-                                    <v-layout class="pointer fill-height" @click="toggleVisible(i)">
-                                        <v-flex align-self-center>{{ h.text }}</v-flex>
-                                    </v-layout>
-                                </v-flex>
-                                <v-flex xs1 align-self-center class="ml-2">
-                                    <v-btn icon x-small v-if="visible[i]" :color="hover ? 'primary' : 'transparent'" @click="gotoColumn(i)">
-                                        <v-icon class="pointer">mdi-target</v-icon>
-                                    </v-btn>
-                                </v-flex>
-                            </v-layout>
-                        </v-hover>
-                    </template>
-                </v-card-text>
-            </v-card>
-        </v-dialog>
+        <ColumnsFilter v-model="columns_filter_popup"
+                       :headers="headers"
+                       :columns-visible.sync="visible"
+                       @goto="gotoColumn" />
     </div>
 </template>
 
 <script>
-    import { zipObject, get, debounce, throttle, isEqual } from 'lodash'
+    import { zipObject, get, debounce, isEqual } from 'lodash'
+    import ColumnsFilter from './ColumnsFilter'
 
     export default {
         name: 'TableView',
+        components: { ColumnsFilter },
         props: {
             sql: String,
             result: Object,
@@ -120,25 +70,12 @@
             search: [],
             search_debounced: [],
             columns_filter_popup: false,
-            column_search: '',
             visible: [],
-            columns_filter_selected: -1,
             sort: [],
             last_headers: [],
             scroll: 0
         }),
         computed: {
-            visible_all: {
-                get () {
-                    return this.visible.every(v => v)
-                },
-                set (value) {
-                    this.fillVisible(value)
-                }
-            },
-            columns_filter_listed () {
-                return this.headers.map(h => !this.column_search || h.text.includes(this.column_search))
-            },
             toolbar_buttons () {
                 return [
                     { icon: 'mdi-table-row-remove', color: 'neutral', tooltip: 'Filter columns', action: () => this.showColumnFilter() },
@@ -177,25 +114,17 @@
                     })
                 }
             },
-            columns_filter_popup (on) {
-                if (on) {
-                    this.column_search = ''
-                    this.columns_filter_selected = -1
-                    requestAnimationFrame(() => {
-                        this.$refs.column_search.focus()
-                    })
-                }
-            },
-            column_search () {
-                const i = this.columns_filter_selected
-                if (i >= 0 && !this.columns_filter_listed[i]) {
-                    this.columns_filter_selected = -1
-                }
+            visible (visible) {
+                visible.forEach((v, i) => {
+                    if (!v) {
+                        this.search[i] = ''
+                        this.search_debounced[i] = ''
+                    }
+                })
             }
         },
         created () {
             this.onScroll = this.onScroll.bind(this)
-            this.keyboard = throttle(this.keyboard, 100)
         },
         mounted () {
             // hot reload aware
@@ -212,15 +141,10 @@
                     this.visible = Array(this.headers.length).fill(value)
                 }
             },
-            toggleVisible (i) {
-                this.$set(this.visible, i, !this.visible[i])
-                this.columns_filter_selected = i
-            },
             showColumnFilter () {
                 this.columns_filter_popup = true
             },
             gotoColumn (i) {
-                i -= this.visible.filter((v, j) => j < i && !v).length
                 const ref = this.$refs.dt.$el
                 const active = ref.querySelector('th.primary--text')
                 if (active) {
@@ -234,69 +158,6 @@
                 const left = col_bounds.left - dt_bounds.left - (dt_bounds.width - col_bounds.width) / 2 - start
                 dt.scrollTo({ left, behavior: 'smooth' })
                 cols[i].classList.add('primary--text')
-            },
-            keyboard (e) {
-                const ENTER = 13
-                const SPACE = 32
-                const ARROW_UP = 38
-                const ARROW_DOWN = 40
-
-                const key = e.keyCode
-
-                const listed = this.columns_filter_listed
-
-                let i = this.columns_filter_selected
-
-                const start = listed.indexOf(true)
-                const end = listed.lastIndexOf(true)
-
-                switch (key) {
-                    case ENTER: {
-                        if (i < 0) {
-                            do { i++ } while (i <= end && !(listed[i] && this.visible[i]))
-                        }
-
-                        if (i >= 0 && i <= end) {
-                            this.gotoColumn(i)
-                            this.columns_filter_popup = false
-                        }
-                        break
-                    }
-                    case SPACE: {
-                        e.preventDefault()
-                        if (i >= 0) {
-                            this.toggleVisible(i)
-                        }
-                        break
-                    }
-                    case ARROW_UP:
-                    case ARROW_DOWN: {
-                        e.preventDefault()
-
-                        if (key === ARROW_UP) {
-                            if (i < 0 || !listed[i]) {
-                                i = end
-                            } else {
-                                do { i-- } while (i >= 0 && !listed[i])
-                            }
-                        } else {
-                            if (i < 0 || !listed[i]) {
-                                i = start
-                            } else {
-                                do { i++ } while (i <= end && !listed[i])
-                            }
-                        }
-
-                        if (this.columns_filter_selected !== i && i >= start && i <= end) {
-                            this.columns_filter_selected = i
-
-                            requestAnimationFrame(() => {
-                                this.$vuetify.goTo('.columns_filter_item.selected', { container: '.columns_filter_body', offset: 150, duration: 200 })
-                            })
-                        }
-                        break
-                    }
-                }
             }
         }
     }
@@ -304,15 +165,6 @@
 
 <style lang="scss">
     $toolbar-width: 25px;
-
-    .column-filter-popup {
-        position: absolute;
-        top: 0;
-
-        .columns_filter_item.selected {
-            background-color: #cccccc33;
-        }
-    }
 
     .result-toolbar {
         position: absolute;
