@@ -31,7 +31,7 @@
             </v-card-title>
 
             <v-card-text class="columns_filter_body px-2 py-2" style="max-height: 300px">
-                <template v-for="(h,i) in headers">
+                <template v-for="i in headers.keys()">
                     <v-hover v-slot:default="{ hover }" :key="i">
                         <v-layout v-show="listed[i]" class="columns_filter_item" :class="{selected: selected === i}">
                             <v-flex xs1 align-self-center>
@@ -41,7 +41,7 @@
                             </v-flex>
                             <v-flex class="ml-2 align-stretch">
                                 <v-layout class="pointer noselect fill-height" @click="toggleVisible(i)">
-                                    <v-flex align-self-center>{{ h.text }}</v-flex>
+                                    <v-flex align-self-center v-html="listed[i]" />
                                 </v-layout>
                             </v-flex>
                             <v-flex xs1 align-self-center class="ml-2">
@@ -58,7 +58,8 @@
 </template>
 
 <script>
-    import { throttle } from 'lodash'
+    import fuzzysort from 'fuzzysort'
+    import { throttle, findIndex, findLastIndex } from 'lodash'
 
     export default {
         name: 'ColumnsFilter',
@@ -101,7 +102,16 @@
                 })
             },
             listed () {
-                return this.headers.map(h => !this.search || h.text.includes(this.search))
+                if (this.search) {
+                    return this.prepared_search_headers
+                        .map(text => fuzzysort.single(this.search, text))
+                        .map(r => r && r.score > -100 && fuzzysort.highlight(r, "<b class='primary--text'>", '</b>'))
+                } else {
+                    return this.headers.map(r => r.text)
+                }
+            },
+            prepared_search_headers () {
+                return this.headers.map(h => fuzzysort.prepare(h.text))
             }
         },
         watch: {
@@ -148,8 +158,8 @@
 
                 let i = this.selected
 
-                const start = this.listed.indexOf(true)
-                const end = this.listed.lastIndexOf(true)
+                const start = findIndex(this.listed) // first !false
+                const end = findLastIndex(this.listed) // last !false
 
                 switch (key) {
                     case ENTER: {

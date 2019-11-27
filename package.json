@@ -12,6 +12,7 @@
     "copy-text-to-clipboard": "^2.1.1",
     "core-js": "^3.4.2",
     "filesize": "^6.0.1",
+    "fuzzysort": "^1.1.4",
     "highlight.js": "^9.16.2",
     "lodash": "^4.17.15",
     "splitpanes": "^2.1.1",
