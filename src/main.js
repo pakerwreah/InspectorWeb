@@ -6,6 +6,7 @@ import './plugins/http'
 import './plugins/mixins'
 import './plugins/scroll'
 import './plugins/highlight'
+import './plugins/directives'
 
 import 'splitpanes/dist/splitpanes.css'
 import './styles/application.scss'

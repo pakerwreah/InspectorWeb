@@ -73,7 +73,7 @@
     import copy from 'copy-text-to-clipboard'
     import saveAs from 'tiny-save-as'
     import filesize from 'filesize'
-    import { parseHeaders, formatTimestamp } from './utils'
+    import { formatTimestamp } from './utils'
 
     export default {
         name: 'RequestViewer',
@@ -101,7 +101,7 @@
                 return (this.request && this.request.raw_headers) || ''
             },
             params () {
-                const params = this.get ? parseHeaders(this.raw_headers).url.search : (this.urlencoded && this.details.body)
+                const params = this.get ? this.headers.url.search : (this.urlencoded && this.details.body)
                 if (params) {
                     return params
                         .split(/[?&]/)
@@ -119,7 +119,7 @@
                 return this.headers.method === 'GET'
             },
             json () {
-                return this.contentType.includes('application/json') || (this.hasBody && ['{', '['].some(c => this.details.body.startsWith(c)))
+                return this.contentType.includes('application/json') || (this.hasBody && ['{', '['].includes(this.details.body[0]))
             },
             html () {
                 return this.contentType.includes('text/html')
@@ -160,7 +160,7 @@
                         } else {
                             readBody(raw_headers, r.body).then(body => {
                                 if (this.request === r) {
-                                    if (this.json) {
+                                    if (this.json || ['{', '['].includes(body[0])) {
                                         const parsed = JSON.parse(body)
                                         if (parsed) {
                                             body = JSON.stringify(parsed, null, 2)
@@ -179,7 +179,7 @@
             copy () {
                 readBody(this.request.raw_headers, this.request.body).then(body => {
                     copy(body)
-                    this.snackbar = { visible: true, text: `Content copied successfully!` }
+                    this.snackbar = { visible: true, text: 'Content copied successfully!' }
                 })
             },
             formatTimestamp: (v, full) => formatTimestamp(v, full)

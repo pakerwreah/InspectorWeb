@@ -28,7 +28,7 @@ export function decode (msg) {
   }
 
   if (p >= 0) {
-    let enc = new TextDecoder('utf-8')
+    const enc = new TextDecoder('utf-8')
     let headers = enc.decode(data.slice(0, p)).toString().split('\n')
     const uid = headers.splice(0, 1).pop()
     const raw_headers = headers.join('\n')

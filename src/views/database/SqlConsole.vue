@@ -1,7 +1,11 @@
 <template>
     <div class="console-wrapper">
         <div class="d-flex align-center">
-            <v-btn icon small class="ml-2" color="success" @click="executeQuery">
+            <!-- TODO: sql history -->
+            <v-btn v-if="false" icon x-small color="neutral" class="ml-3" @click="history_popup = true">
+                <v-icon>mdi-file-document-box-search-outline</v-icon>
+            </v-btn>
+            <v-btn icon small color="success" class="ml-2" @click="executeQuery">
                 <v-icon>mdi-play</v-icon>
             </v-btn>
             <v-spacer />
@@ -37,7 +41,9 @@
         },
         data: () => ({
             sql: '',
-            script: false
+            script: false,
+            // TODO: sql history
+            history_popup: false
         }),
         computed: {
             theme () {
@@ -157,7 +163,7 @@
             margin-right: 0;
 
             .v-icon {
-                color: var(--v-selection_bg-base);
+                color: var(--v-neutral-base);
             }
         }
     }

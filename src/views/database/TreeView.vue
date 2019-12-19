@@ -11,6 +11,11 @@
                   hide-details
                   hide-selected
                   filled solo dense flat />
+
+        <v-btn icon x-small color="neutral" @click="selectDB(selected)" class="database-sync">
+            <v-icon>mdi-sync</v-icon>
+        </v-btn>
+
         <v-treeview v-if="items"
                     class="database-tree"
                     :open.sync="open"
@@ -21,7 +26,7 @@
                     {{ item.name }}
                 </v-flex>
             </template>
-            <template v-slot:append="{ item, leaf }">
+            <template v-slot:append="{ item }">
                 <span class="noselect accent--text text-lowercase pt-1 pl-2" style="font-size: 10px">
                     {{ item.type }}
                 </span>
@@ -90,7 +95,7 @@
                     return this.databases[this.currentdb]
                 },
                 set (name) {
-                    this.$emit('selectDB', this.databases.indexOf(name))
+                    this.selectDB(name)
                 }
             }
         },
@@ -103,6 +108,9 @@
             this.loadSchema()
         },
         methods: {
+            selectDB (name) {
+                this.$emit('selectDB', this.databases.indexOf(name))
+            },
             toggle (table) {
                 if (this.open.includes(table)) {
                     this.open = this.open.filter(item => item !== table)
@@ -150,12 +158,29 @@
             flex: 0;
 
             .v-icon {
-                color: var(--v-selection_bg-base) !important;
+                color: var(--v-neutral-base) !important;
             }
 
             .v-input__slot {
                 padding-left: 5px !important;
             }
+
+            &.v-input--is-disabled+.database-sync {
+                display: none;
+            }
+
+            &:hover+.database-sync {
+                display: block;
+            }
+        }
+
+        .database-sync {
+            &:not(:hover) {
+                display: none;
+            }
+            position: absolute;
+            top: 8px;
+            right: 0;
         }
 
         .database-tree {
@@ -186,7 +211,7 @@
             }
 
             .v-treeview-node__root::before {
-                background-color: var(--v-selection_bg-base);
+                background-color: var(--v-neutral-base);
             }
 
             .v-treeview-node--leaf > .v-treeview-node__root {
