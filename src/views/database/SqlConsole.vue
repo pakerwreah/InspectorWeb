@@ -2,7 +2,7 @@
     <div class="console-wrapper">
         <div class="d-flex align-center">
             <!-- TODO: sql history -->
-            <v-btn icon x-small color="neutral" class="ml-3" @click="history_popup = true">
+            <v-btn v-if="false" icon x-small color="neutral" class="ml-3" @click="history_popup = true">
                 <v-icon>mdi-file-document-box-search-outline</v-icon>
             </v-btn>
             <v-btn icon small color="success" class="ml-2" @click="executeQuery">
