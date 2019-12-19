@@ -1,5 +1,5 @@
 <template>
-    <splitpanes class="default-theme fill-height">
+    <splitpanes class="network-panel default-theme fill-height">
         <pane style="min-width: 250px" :size="100 - detail_size">
             <!--suppress HtmlUnknownAttribute -->
             <div ref="scroll" class="network-container" v-chat-scroll="{always: false, smooth: true}">
@@ -35,14 +35,46 @@
                     </v-list-item-group>
                 </v-list>
             </div>
-            <v-fab-transition>
-                <v-btn v-show="clear_visible"
-                       @click="clearRequests"
-                       class="mr-2"
-                       small fab fixed bottom right>
-                    <v-icon>mdi-trash-can-outline</v-icon>
-                </v-btn>
-            </v-fab-transition>
+            <v-speed-dial open-on-hover bottom right fixed class="close_menu mr-2">
+                <template v-slot:activator>
+                    <v-tooltip left>
+                        <template v-slot:activator="{ on }">
+                            <v-fab-transition>
+                                <v-btn v-show="clear_visible"
+                                       @click.stop="clearEndedRequests"
+                                       v-on="on"
+                                       small fab
+                                       v-blur>
+                                    <v-icon>mdi-trash-can-outline</v-icon>
+                                </v-btn>
+                            </v-fab-transition>
+                        </template>
+                        <span>Clear finished</span>
+                    </v-tooltip>
+                </template>
+                <v-tooltip left>
+                    <template v-slot:activator="{ on }">
+                        <v-btn @click.stop="clearPreviousRequests"
+                               v-on="on"
+                               small fab
+                               v-blur>
+                            <v-icon>mdi-upload-off</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Clear previous requests</span>
+                </v-tooltip>
+                <v-tooltip left>
+                    <template v-slot:activator="{ on }">
+                        <v-btn @click.stop="clearAllRequests"
+                               v-on="on"
+                               small fab
+                               v-blur>
+                            <v-icon>mdi-skull-outline</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Clear all requests</span>
+                </v-tooltip>
+            </v-speed-dial>
         </pane>
         <pane :size="detail_size">
             <splitpanes class="default-theme fill-height" horizontal>
@@ -59,7 +91,7 @@
 
 <script>
     import { Splitpanes, Pane } from 'splitpanes'
-    import { sortBy } from 'lodash'
+    import { pickBy, sortBy } from 'lodash'
     import filesize from 'filesize'
     import db from './database'
     import { decode, formatTimestamp } from './utils'
@@ -177,6 +209,7 @@
                         data.session = this.session.timestamp
                         data.timestamp = new Date().getTime()
 
+                        /** @type Array */
                         const r = this.session.requests
                         if (!r.includes(data.uid)) {
                             r.push(data.uid)
@@ -237,11 +270,40 @@
                 this.session_list = sortBy(Object.values(session_list), 'timestamp')
                 this.requests = requests
             },
-            clearRequests () {
+            clearAllRequests () {
                 this.session_list = []
                 this.requests = {}
                 this.selected = undefined
                 db.clearRequests()
+            },
+            clearPreviousRequests () {
+                if (this.session_list.length) {
+                    const last_session = this.session
+                    const requests = pickBy(this.requests, r => r.session === last_session.timestamp)
+                    const req_list = Object.values(requests)
+
+                    this.session_list = [last_session]
+                    this.requests = requests
+                    this.selected = undefined
+
+                    db.clearRequests()
+                    req_list.forEach(db.putRequest)
+                }
+            },
+            clearEndedRequests () {
+                if (this.session_list.length) {
+                    const last_session = this.session
+                    const requests = pickBy(this.requests, r => !r.status && r.session === last_session.timestamp)
+                    const req_list = Object.values(requests)
+
+                    last_session.requests = req_list.map(r => r.uid)
+                    this.session_list = req_list.length ? [last_session] : []
+                    this.requests = requests
+                    this.selected = undefined
+
+                    db.clearRequests()
+                    req_list.forEach(db.putRequest)
+                }
             },
             statusColor (status) {
                 status = parseInt(status)
@@ -265,6 +327,14 @@
         }
     }
 </script>
+
+<style lang="scss">
+    .network-panel {
+        .close_menu .v-speed-dial__list {
+            padding-bottom: 8px;
+        }
+    }
+</style>
 
 <style scoped lang="scss">
     .network-container {
