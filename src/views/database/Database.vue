@@ -141,67 +141,79 @@
                     }
                 }
             },
-            async loadSchema (m_id) {
-                this.progress = 0
-                const max_tries = 3
-                for (let tries = 0; tries < max_tries && m_id === this.m_id; tries++) {
-                    try {
-                        const schema = { tables: {} }
-
-                        const getTables = async () => {
-                            const sql_tables = `
+            async getTables () {
+                const sql_tables = `
                                 SELECT name
                                 FROM sqlite_master
-                                WHERE type = 'table' AND name NOT IN ('android_metadata', 'sqlite_sequence')
+                                WHERE type = 'table'
+                                AND name NOT IN ('android_metadata', 'sqlite_sequence')
                                 ORDER BY name
                             `
-                            const r = await this.$http.post('/database/query', sql_tables)
+                const r = await this.$http.post('/database/query', sql_tables)
 
-                            return r.data.data.map(d => d[0])
+                return r.data.data.map(d => d[0])
+            },
+            async getColumns (table) {
+                const sql_columns = `pragma table_info(${table})`
+                const r = await this.$http.post('/database/query', sql_columns)
+                const cols = r.data.data
+                const idx = name => r.data.headers.indexOf(name)
+                const columns = {}
+                for (const c of cols) {
+                    columns[c[idx('name')]] = {
+                        type: c[idx('type')],
+                        notnull: !!c[idx('notnull')],
+                        dflt_value: c[idx('dflt_value')],
+                        pk: !!c[idx('pk')]
+                    }
+                }
+                return columns
+            },
+            async getForeignKeys (table) {
+                const sql_columns = `pragma foreign_key_list(${table})`
+                const r = await this.$http.post('/database/query', sql_columns)
+                const cols = r.data.data
+                const idx = name => r.data.headers.indexOf(name)
+                const foreign_keys = []
+                for (const c of cols) {
+                    foreign_keys.push({
+                        from: c[idx('from')],
+                        table: c[idx('table')],
+                        to: c[idx('to')]
+                    })
+                }
+                return foreign_keys
+            },
+            async loadTable (m_id, schema, table) {
+                const max_tries = 3
+                for (let tries = 0; m_id === this.m_id; tries++) {
+                    try {
+                        const columns = await this.getColumns(table)
+                        const foreign_keys = await this.getForeignKeys(table)
+                        for (const fk of foreign_keys) {
+                            columns[fk.from].fk = `${fk.table} (${fk.to})`
                         }
+                        schema.tables[table] = { columns }
 
-                        const getColumns = async table => {
-                            const sql_columns = `pragma table_info(${table})`
-                            const r = await this.$http.post('/database/query', sql_columns)
-                            const cols = r.data.data
-                            const idx = name => r.data.headers.indexOf(name)
-                            const columns = {}
-                            for (const c of cols) {
-                                columns[c[idx('name')]] = {
-                                    type: c[idx('type')],
-                                    notnull: !!c[idx('notnull')],
-                                    dflt_value: c[idx('dflt_value')],
-                                    pk: !!c[idx('pk')]
-                                }
-                            }
-                            return columns
+                        return
+                    } catch (error) {
+                        if (tries === max_tries - 1) {
+                            throw error
                         }
+                    }
+                }
+            },
+            async loadSchema (m_id) {
+                const schema = { tables: {} }
 
-                        const getForeignKeys = async table => {
-                            const sql_columns = `pragma foreign_key_list(${table})`
-                            const r = await this.$http.post('/database/query', sql_columns)
-                            const cols = r.data.data
-                            const idx = name => r.data.headers.indexOf(name)
-                            const foreign_keys = []
-                            for (const c of cols) {
-                                foreign_keys.push({
-                                    from: c[idx('from')],
-                                    table: c[idx('table')],
-                                    to: c[idx('to')]
-                                })
-                            }
-                            return foreign_keys
-                        }
-
-                        const tables = await getTables()
+                this.progress = 0
+                const max_tries = 3
+                for (let tries = 0; m_id === this.m_id; tries++) {
+                    try {
+                        const tables = await this.getTables()
 
                         for (const [i, table] of Object.entries(tables)) {
-                            const columns = await getColumns(table)
-                            const foreign_keys = await getForeignKeys(table)
-                            for (const fk of foreign_keys) {
-                                columns[fk.from].fk = `${fk.table} (${fk.to})`
-                            }
-                            schema.tables[table] = { columns }
+                            await this.loadTable(m_id, schema, table)
 
                             if (i % 3 === 0) {
                                 const progress = 100 * (parseInt(i) + 1) / tables.length
