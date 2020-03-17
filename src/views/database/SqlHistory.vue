@@ -8,20 +8,44 @@
             </v-card-title>
             <v-card-text class="pa-0 flex relative">
                 <splitpanes class="default-theme absolute-expand">
-                    <pane style="min-width: 80px" size="40">
-                        <v-list class="sql-history-list pt-0 fill-height overflow-y-auto">
-                            <v-list-item-group v-model="selected" mandatory color="primary">
-                                <v-list-item v-for="(item, i) in items"
-                                             :key="i"
-                                             class="sql-history-item px-1 pb-1"
-                                             :class="{selected: selected === i}">
-                                    <v-layout column>
-                                        <v-flex class="text--secondary"><small>{{ formatTimestamp(item.timestamp) }}</small></v-flex>
-                                        <v-flex class="text-ellipsis">{{ item.sql }}</v-flex>
-                                    </v-layout>
-                                </v-list-item>
-                            </v-list-item-group>
-                        </v-list>
+                    <pane style="min-width: 250px" size="40">
+                        <v-layout column class="fill-height">
+                            <v-btn-toggle v-model="favorites" mandatory borderless color="accent">
+                                <v-btn :value="false" small class="flex flex-basis-0">All</v-btn>
+                                <v-btn :value="true" small class="flex flex-basis-0">Favorites</v-btn>
+                            </v-btn-toggle>
+                            <v-list class="sql-history-list pt-0 overflow-y-auto" dense>
+                                <v-list-item-group v-model="selected" mandatory color="primary">
+                                    <template v-for="(item, i) in items">
+                                        <v-hover v-slot:default="{ hover }" :key="i">
+                                            <v-list-item class="sql-history-item px-2"
+                                                         :class="{selected: selected === i}">
+                                                <v-list-item-content>
+                                                    <v-list-item-subtitle>
+                                                        <small>{{ formatTimestamp(item.timestamp) }}</small>
+
+                                                        <v-btn x-small icon v-if="hover || item.favorite"
+                                                               @mousedown.stop
+                                                               @click.stop="$set(item, 'favorite', !item.favorite)"
+                                                               class="favorite-btn">
+                                                            <v-icon v-if="!item.favorite" x-small>
+                                                                mdi-star-outline
+                                                            </v-icon>
+                                                            <v-icon v-else color="accent" x-small>
+                                                                mdi-star
+                                                            </v-icon>
+                                                        </v-btn>
+                                                    </v-list-item-subtitle>
+                                                    <v-list-item-title>{{ item.sql }}</v-list-item-title>
+                                                </v-list-item-content>
+                                            </v-list-item>
+                                        </v-hover>
+
+                                        <v-divider :key="'divider' + i" />
+                                    </template>
+                                </v-list-item-group>
+                            </v-list>
+                        </v-layout>
                     </pane>
                     <pane>
                         <div class="fill-height overflow-y-auto px-3 pb-5">
@@ -39,6 +63,7 @@
     import { Splitpanes, Pane } from 'splitpanes'
     import { formatTimestamp } from '../network/utils'
 
+    // noinspection SqlResolve,SqlCheckUsingColumns
     export default {
         name: 'SqlHistory',
         components: { Splitpanes, Pane },
@@ -46,43 +71,42 @@
             value: Boolean
         },
         data: () => ({
+            favorites: false,
             selected: -1,
-            items: [
+            prev_item: undefined,
+            history: [
                 {
+                    favorite: true,
                     timestamp: new Date().getTime(),
-                    sql: 'SELECT DISTINCT\n' +
-                        '                r.id_reserva,\n' +
-                        '                r.id_comissionado,\n' +
-                        '                id_pedido,\n' +
-                        '                r.id_produto,\n' +
-                        '                r.id_bem,\n' +
-                        '                nm_bem,\n' +
-                        '                vl_bem,\n' +
-                        '                vl_fisica,\n' +
-                        '                r.id_grupo,\n' +
-                        '                g.cd_grupo,\n' +
-                        '                r.cd_cota,\n' +
-                        '                r.id_plano_venda,\n' +
-                        '                pl.nome as nm_plano_venda,\n' +
-                        '                r.id_tipo_venda,\n' +
-                        '                tv.nome as nm_tipo_venda,\n' +
-                        '                r.pz_comercializacao,\n' +
-                        '                cg.pe_ta as taxa_adm,\n' +
-                        '                dt_reserva,\n' +
-                        '                dt_validade,\n' +
-                        '                r.tipo_negociacao\n' +
-                        '            FROM tb_reserva r\n' +
-                        '            LEFT JOIN tb_grupo g USING (id_bem, id_plano_venda, id_regiao_fiscal, id_grupo, pz_comercializacao)\n' +
-                        '            LEFT JOIN tb_caracteristica_grupo cg ON cg.id_grupo = r.id_grupo\n' +
-                        '            LEFT JOIN tb_plano_venda pl ON pl.id_plano_venda = r.id_plano_venda\n' +
-                        '            LEFT JOIN tb_bem c USING (id_bem)\n' +
-                        '            LEFT JOIN tb_tipo_venda tv USING (id_tipo_venda)\n' +
-                        '            LEFT JOIN tb_pedido p USING (id_reserva)\n' +
-                        '            WHERE \\(selection)\n' +
-                        '            AND (no_pc_inicial IS NULL OR no_pc_inicial = 1)\n' +
-                        '            AND r.id_filial = ?\n' +
-                        '            AND r.id_regiao_fiscal = ?\n' +
-                        '            ORDER BY dt_reserva DESC, r.id_reserva DESC'
+                    sql: `SELECT DISTINCT r.id_reserva,
+                                          r.id_comissionado,
+                                          id_pedido,
+                                          r.id_produto,
+                                          r.id_bem,
+                                          nm_bem,
+                                          vl_bem,
+                                          vl_fisica,
+                                          r.id_grupo,
+                                          g.cd_grupo,
+                                          r.cd_cota,
+                                          r.id_plano_venda,
+                                          pl.nome AS nm_plano_venda,
+                                          r.id_tipo_venda,
+                                          tv.nome AS nm_tipo_venda,
+                                          r.pz_comercializacao,
+                                          cg.pe_ta AS taxa_adm,
+                                          dt_reserva,
+                                          dt_validade,
+                                          r.tipo_negociacao
+                          FROM tb_reserva r
+                                   LEFT JOIN tb_grupo g USING (id_bem, id_plano_venda, id_regiao_fiscal, id_grupo, pz_comercializacao)
+                                   LEFT JOIN tb_caracteristica_grupo cg ON cg.id_grupo = r.id_grupo
+                                   LEFT JOIN tb_plano_venda pl ON pl.id_plano_venda = r.id_plano_venda
+                                   LEFT JOIN tb_bem c USING (id_bem)
+                                   LEFT JOIN tb_tipo_venda tv USING (id_tipo_venda)
+                                   LEFT JOIN tb_pedido p USING (id_reserva)
+                          WHERE 1 AND (no_pc_inicial IS NULL OR no_pc_inicial = 1) AND r.id_filial = ? AND r.id_regiao_fiscal = ?
+                          ORDER BY dt_reserva DESC, r.id_reserva DESC`
                 },
                 {
                     timestamp: new Date().getTime() - 1000,
@@ -160,12 +184,33 @@
             },
             codestyle () {
                 return this.dark_mode ? 'dark' : 'light'
+            },
+            items () {
+                return this.history.filter(it => !this.favorites || it.favorite)
             }
         },
         watch: {
             open: {
                 handler: 'initialize',
                 immediate: true
+            },
+            selected (pos) {
+                this.prev_item = pos >= 0 ? this.items[pos] : undefined
+            },
+            items () {
+                const total = this.items.length
+
+                const new_index = this.items.indexOf(this.prev_item)
+
+                if (new_index >= 0) {
+                    this.selected = new_index
+                } else if ((this.favorites || this.selected < 0) && total) {
+                    this.selected = 0
+                } else if (this.selected >= total) {
+                    this.selected = total - 1
+                }
+
+                this.prev_item = this.selected >= 0 ? this.items[this.selected] : undefined
             }
         },
         mounted () {
@@ -192,8 +237,10 @@
                     return
                 }
 
+                const TAB = 9
                 const ENTER = 13
                 const ESC = 27
+                const SPACE = 32
                 const ARROW_UP = 38
                 const ARROW_DOWN = 40
 
@@ -202,6 +249,17 @@
                 switch (key) {
                     case ESC: {
                         this.open = false
+                        break
+                    }
+                    case TAB: {
+                        e.preventDefault()
+                        this.favorites = !this.favorites
+                        break
+                    }
+                    case SPACE: {
+                        e.preventDefault()
+                        const item = this.items[this.selected]
+                        this.$set(item, 'favorite', !item.favorite)
                         break
                     }
                     case ENTER: {
@@ -225,7 +283,10 @@
                             }
 
                             requestAnimationFrame(() => {
-                                this.$vuetify.goTo('.sql-history-item.selected', { container: '.sql-history-list', duration: 200 })
+                                const list_height = document.querySelector('.sql-history-list').clientHeight
+                                const item_height = document.querySelector('.sql-history-item.selected').clientHeight
+                                const offset = (list_height - item_height) / 2
+                                this.$vuetify.goTo('.sql-history-item.selected', { container: '.sql-history-list', duration: 200, offset })
                             })
                         }
                         break
@@ -260,9 +321,11 @@
     .sql-history-container {
         display: flex;
         flex-direction: column;
+    }
 
-        .sql-history-item {
-            border-bottom: solid 1px #cccccc55;
-        }
+    .favorite-btn {
+        position: absolute;
+        top: 5px;
+        right: 4px;
     }
 </style>

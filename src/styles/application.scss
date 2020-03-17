@@ -3,6 +3,10 @@ html {
 }
 
 #app {
+    .flex-basis-0 {
+        flex-basis: 0;
+    }
+
     .relative {
         position: relative;
     }
@@ -38,7 +42,7 @@ html {
     // dialog
 
     .v-dialog {
-        box-shadow: 0 0 8px 3px var(--v-controls_border-darken2);
+        box-shadow: 0 0 20px 10px var(--v-controls_border-darken2);
     }
 
     // stepper
