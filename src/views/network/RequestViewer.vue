@@ -217,16 +217,6 @@
 <style lang="scss">
     .network-detail-container {
         pre {
-            code:before, code:after {
-                content: unset;
-            }
-
-            code.hljs {
-                padding: 0 !important;
-                background-color: inherit !important;
-                box-shadow: none;
-            }
-
             &.dark {
                 @import '~highlight.js/scss/night-owl';
             }

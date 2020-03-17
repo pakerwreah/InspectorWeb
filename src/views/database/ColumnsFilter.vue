@@ -3,7 +3,7 @@
               width="300"
               overlay-opacity="0.1"
               attach=".result-container"
-              content-class="column-filter-popup"
+              content-class="columns-filter-popup"
               scrollable
               @keydown="keyboard">
         <v-card>
@@ -30,10 +30,10 @@
                 </v-layout>
             </v-card-title>
 
-            <v-card-text class="columns_filter_body px-2 py-2" style="max-height: 300px">
+            <v-card-text class="columns-filter-body px-2 py-2" style="max-height: 300px">
                 <template v-for="i in headers.keys()">
                     <v-hover v-slot:default="{ hover }" :key="i">
-                        <v-layout v-show="listed[i]" class="columns_filter_item" :class="{selected: selected === i}">
+                        <v-layout v-show="listed[i]" class="columns-filter-item" :class="{selected: selected === i}">
                             <v-flex xs1 align-self-center>
                                 <v-checkbox v-model="visible[i]"
                                             class="my-0 py-1 mr-2"
@@ -204,7 +204,7 @@
                             this.selected = i
 
                             requestAnimationFrame(() => {
-                                this.$vuetify.goTo('.columns_filter_item.selected', { container: '.columns_filter_body', offset: 150, duration: 200 })
+                                this.$vuetify.goTo('.columns-filter-item.selected', { container: '.columns-filter-body', offset: 150, duration: 200 })
                             })
                         }
                         break
@@ -216,11 +216,11 @@
 </script>
 
 <style lang="scss">
-    .column-filter-popup {
+    .columns-filter-popup {
         position: absolute;
         top: 0;
 
-        .columns_filter_item.selected {
+        .columns-filter-item.selected {
             background-color: #cccccc33;
         }
     }

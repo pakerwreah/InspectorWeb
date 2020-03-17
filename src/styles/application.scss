@@ -3,6 +3,24 @@ html {
 }
 
 #app {
+    .relative {
+        position: relative;
+    }
+
+    .absolute-expand {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+    }
+
+    .text-ellipsis {
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
     .noselect {
         cursor: default;
         user-select: none;
@@ -10,6 +28,17 @@ html {
 
     .pointer {
         cursor: pointer;
+    }
+
+    // list
+    .theme--dark .v-list {
+        background: var(--v-controls-darken1);
+    }
+
+    // dialog
+
+    .v-dialog {
+        box-shadow: 0 0 8px 3px var(--v-controls_border-darken2);
     }
 
     // stepper
@@ -106,6 +135,17 @@ html {
                     background-color: var(--v-controls-darken4);
                 }
             }
+        }
+    }
+
+    pre code.hljs {
+        font-weight: normal;
+        padding: 0 !important;
+        background-color: inherit !important;
+        box-shadow: none;
+
+        &:before, &:after {
+            content: unset;
         }
     }
 }

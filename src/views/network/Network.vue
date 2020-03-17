@@ -2,7 +2,7 @@
     <splitpanes class="network-panel default-theme fill-height">
         <pane style="min-width: 250px" :size="100 - detail_size">
             <!--suppress HtmlUnknownAttribute -->
-            <div ref="scroll" class="network-container" v-chat-scroll="{always: false, smooth: true}">
+            <div ref="scroll" class="network-container absolute-expand overflow-y-auto" v-chat-scroll="{always: false, smooth: true}">
                 <v-list v-if="session_list.length" dense>
                     <v-list-item-group v-model="selected" color="primary">
                         <div v-for="(s,i) in session_list" :key="i">
@@ -338,12 +338,6 @@
 
 <style scoped lang="scss">
     .network-container {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        top: 0;
-        overflow-y: auto;
 
         .request-item {
             min-height: 0;
