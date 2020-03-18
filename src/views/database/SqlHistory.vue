@@ -5,6 +5,11 @@
                 <v-layout class="text-center">
                     <v-flex>SQL History</v-flex>
                 </v-layout>
+                <v-btn color="neutral"
+                       @click="open = false"
+                       small icon absolute right>
+                    <v-icon small>mdi-close</v-icon>
+                </v-btn>
             </v-card-title>
             <v-card-text class="pa-0 flex relative">
                 <splitpanes class="default-theme absolute-expand">
@@ -19,15 +24,17 @@
                                     <template v-for="(item, i) in items">
                                         <v-hover v-slot:default="{ hover }" :key="i">
                                             <v-list-item class="sql-history-item px-2"
-                                                         :class="{selected: selected === i}">
+                                                         :class="{selected: selected === i}"
+                                                         @dblclick="selectItem(item)">
                                                 <v-list-item-content>
                                                     <v-list-item-subtitle>
                                                         <small>{{ formatTimestamp(item.timestamp) }}</small>
 
-                                                        <v-btn x-small icon v-if="hover || item.favorite"
+                                                        <v-btn v-if="hover || item.favorite"
+                                                               class="favorite-btn"
                                                                @mousedown.stop
-                                                               @click.stop="$set(item, 'favorite', !item.favorite)"
-                                                               class="favorite-btn">
+                                                               @click.stop="toggleFavorite(item)"
+                                                               x-small icon>
                                                             <v-icon v-if="!item.favorite" x-small>
                                                                 mdi-star-outline
                                                             </v-icon>
@@ -36,6 +43,7 @@
                                                             </v-icon>
                                                         </v-btn>
                                                     </v-list-item-subtitle>
+
                                                     <v-list-item-title>{{ item.sql }}</v-list-item-title>
                                                 </v-list-item-content>
                                             </v-list-item>
@@ -61,9 +69,8 @@
 
 <script>
     import { Splitpanes, Pane } from 'splitpanes'
-    import { formatTimestamp } from '../network/utils'
+    import { formatTimestamp } from '../../utils'
 
-    // noinspection SqlResolve,SqlCheckUsingColumns
     export default {
         name: 'SqlHistory',
         components: { Splitpanes, Pane },
@@ -74,104 +81,7 @@
             favorites: false,
             selected: -1,
             prev_item: undefined,
-            history: [
-                {
-                    favorite: true,
-                    timestamp: new Date().getTime(),
-                    sql: `SELECT DISTINCT r.id_reserva,
-                                          r.id_comissionado,
-                                          id_pedido,
-                                          r.id_produto,
-                                          r.id_bem,
-                                          nm_bem,
-                                          vl_bem,
-                                          vl_fisica,
-                                          r.id_grupo,
-                                          g.cd_grupo,
-                                          r.cd_cota,
-                                          r.id_plano_venda,
-                                          pl.nome AS nm_plano_venda,
-                                          r.id_tipo_venda,
-                                          tv.nome AS nm_tipo_venda,
-                                          r.pz_comercializacao,
-                                          cg.pe_ta AS taxa_adm,
-                                          dt_reserva,
-                                          dt_validade,
-                                          r.tipo_negociacao
-                          FROM tb_reserva r
-                                   LEFT JOIN tb_grupo g USING (id_bem, id_plano_venda, id_regiao_fiscal, id_grupo, pz_comercializacao)
-                                   LEFT JOIN tb_caracteristica_grupo cg ON cg.id_grupo = r.id_grupo
-                                   LEFT JOIN tb_plano_venda pl ON pl.id_plano_venda = r.id_plano_venda
-                                   LEFT JOIN tb_bem c USING (id_bem)
-                                   LEFT JOIN tb_tipo_venda tv USING (id_tipo_venda)
-                                   LEFT JOIN tb_pedido p USING (id_reserva)
-                          WHERE 1 AND (no_pc_inicial IS NULL OR no_pc_inicial = 1) AND r.id_filial = ? AND r.id_regiao_fiscal = ?
-                          ORDER BY dt_reserva DESC, r.id_reserva DESC`
-                },
-                {
-                    timestamp: new Date().getTime() - 1000,
-                    sql: 'SELECT * FROM tb_lorem LIMIT 100'
-                },
-                {
-                    timestamp: new Date().getTime() - 2000,
-                    sql: 'SELECT * FROM tb_ipsum GROUP BY year ORDER BY date'
-                }, {
-                    timestamp: new Date().getTime(),
-                    sql: 'SELECT * FROM tb_test ORDER BY name'
-                },
-                {
-                    timestamp: new Date().getTime() - 3000,
-                    sql: 'SELECT * FROM tb_lorem LIMIT 100'
-                },
-                {
-                    timestamp: new Date().getTime() - 5000,
-                    sql: 'SELECT * FROM tb_ipsum GROUP BY year ORDER BY date'
-                }, {
-                    timestamp: new Date().getTime(),
-                    sql: 'SELECT * FROM tb_test ORDER BY name'
-                },
-                {
-                    timestamp: new Date().getTime() - 10000,
-                    sql: 'SELECT * FROM tb_lorem LIMIT 100'
-                },
-                {
-                    timestamp: new Date().getTime() - 30000,
-                    sql: 'SELECT * FROM tb_ipsum GROUP BY year ORDER BY date'
-                }, {
-                    timestamp: new Date().getTime(),
-                    sql: 'SELECT * FROM tb_test ORDER BY name'
-                },
-                {
-                    timestamp: new Date().getTime() - 100000,
-                    sql: 'SELECT * FROM tb_lorem LIMIT 100'
-                },
-                {
-                    timestamp: new Date().getTime() - 300000,
-                    sql: 'SELECT * FROM tb_ipsum GROUP BY year ORDER BY date'
-                }, {
-                    timestamp: new Date().getTime(),
-                    sql: 'SELECT * FROM tb_test ORDER BY name'
-                },
-                {
-                    timestamp: new Date().getTime() - 10000000,
-                    sql: 'SELECT * FROM tb_lorem LIMIT 100'
-                },
-                {
-                    timestamp: new Date().getTime() - 20000000,
-                    sql: 'SELECT * FROM tb_ipsum GROUP BY year ORDER BY date'
-                }, {
-                    timestamp: new Date().getTime() - 25000000,
-                    sql: 'SELECT * FROM tb_test ORDER BY name'
-                },
-                {
-                    timestamp: new Date().getTime() - 30000000,
-                    sql: 'SELECT * FROM tb_lorem LIMIT 100'
-                },
-                {
-                    timestamp: new Date().getTime() - 50000000,
-                    sql: 'SELECT * FROM tb_ipsum GROUP BY year ORDER BY date'
-                }
-            ]
+            history: []
         }),
         computed: {
             open: {
@@ -200,7 +110,7 @@
             items () {
                 const total = this.items.length
 
-                const new_index = this.items.indexOf(this.prev_item)
+                const new_index = this.prev_item ? this.items.map(it => it.sql).indexOf(this.prev_item.sql) : -1
 
                 if (new_index >= 0) {
                     this.selected = new_index
@@ -222,18 +132,24 @@
         },
         methods: {
             initialize () {
-                if (this.open && this.items.length > 0) {
-                    this.selected = 0
+                this.history = JSON.parse(localStorage.getItem('sql_history') || '[]')
+
+                if (this.open && this.selected >= 0) {
                     requestAnimationFrame(() => {
                         this.$vuetify.goTo('.sql-history-item.selected', { container: '.sql-history-list', duration: 0 })
                     })
                 }
             },
-            useSql () {
-
+            toggleFavorite (item) {
+                this.$set(item, 'favorite', !item.favorite)
+                localStorage.setItem('sql_history', JSON.stringify(this.history))
+            },
+            selectItem ({ sql }) {
+                this.$emit('selected', sql)
+                this.open = false
             },
             keyboard (e) {
-                if (!this.open || this.selected < 0) {
+                if (!this.open) {
                     return
                 }
 
@@ -257,14 +173,19 @@
                         break
                     }
                     case SPACE: {
-                        e.preventDefault()
-                        const item = this.items[this.selected]
-                        this.$set(item, 'favorite', !item.favorite)
+                        if (this.selected >= 0) {
+                            e.preventDefault()
+                            const item = this.items[this.selected]
+                            this.toggleFavorite(item)
+                        }
                         break
                     }
                     case ENTER: {
-                        this.useSql()
-                        this.open = false
+                        e.preventDefault()
+                        if (this.selected >= 0) {
+                            const item = this.items[this.selected]
+                            this.selectItem(item)
+                        }
                         break
                     }
                     case ARROW_UP:
@@ -273,7 +194,7 @@
 
                         const total = this.items.length
 
-                        if (total > 0) {
+                        if (total > 0 && this.selected >= 0) {
                             if (key === ARROW_UP) {
                                 if (this.selected > 0) {
                                     this.selected--
@@ -293,7 +214,7 @@
                     }
                 }
             },
-            formatTimestamp: v => formatTimestamp(v)
+            formatTimestamp
         }
     }
 </script>

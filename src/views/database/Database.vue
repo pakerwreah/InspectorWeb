@@ -36,23 +36,7 @@
     import SqlConsole from './SqlConsole'
     import TableView from './TableView'
     import TreeView from './TreeView'
-    import { sleep } from '../../utils'
-
-    function formatDuration (duration) {
-        const { sec, usec } = duration
-
-        const msg = []
-
-        if (sec) {
-            msg.push(`${sec} second` + (sec > 1 ? 's' : ''))
-        }
-
-        if (usec) {
-            msg.push(`${usec / 1000} milliseconds`)
-        }
-
-        return msg.join(' and ')
-    }
+    import { sleep, formatDuration } from '../../utils'
 
     export default {
         name: 'Database',
@@ -100,6 +84,29 @@
                     if (/(^|\s)(create|alter|drop)\s/ig.test(sql)) {
                         await this.loadSchema(this.m_id)
                     }
+
+                    let history = JSON.parse(localStorage.getItem('sql_history') || '[]')
+
+                    sql = sql.trim()
+
+                    const item = history.find(it => it.sql === sql) || { sql }
+
+                    item.timestamp = new Date().getTime()
+
+                    history = history.filter(it => it.sql !== sql) // remove current element (if exists)
+
+                    const favorites = history.filter(it => it.favorite)
+
+                    history = history
+                        .filter(it => !it.favorite) // remove favorites
+                        .slice(0, 99) // truncate tail
+                        .concat(favorites) // re-add favorites
+
+                    history.unshift(item) // add current element
+
+                    history.sort((a, b) => (a.timestamp < b.timestamp) ? 1 : -1)
+
+                    localStorage.setItem('sql_history', JSON.stringify(history))
                 } catch (error) {
                     this.error = get(error, 'response.data.msg', error.message)
                 }
@@ -142,6 +149,7 @@
                 }
             },
             async getTables () {
+                // noinspection SqlResolve
                 const sql_tables = `
                                 SELECT name
                                 FROM sqlite_master

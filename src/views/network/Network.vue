@@ -94,7 +94,8 @@
     import { pickBy, sortBy } from 'lodash'
     import filesize from 'filesize'
     import db from './database'
-    import { decode, formatTimestamp } from './utils'
+    import { decode } from './utils'
+    import { formatTimestamp } from '../../utils'
     import RequestViewer from './RequestViewer'
 
     /** @type WebSocket */
@@ -322,8 +323,8 @@
                     return value + ' ms'
                 }
             },
-            filesize: v => filesize(v),
-            formatTimestamp: v => formatTimestamp(v)
+            filesize,
+            formatTimestamp
         }
     }
 </script>

@@ -19,7 +19,7 @@
                 :theme="theme"
                 :options="editorOptions" />
 
-        <SqlHistory v-model="history_popup" />
+        <SqlHistory v-model="history_popup" @selected="historySelected" />
     </div>
 </template>
 
@@ -92,6 +92,10 @@
             executeQuery () {
                 // noinspection JSUnresolvedFunction
                 this.$emit('query', this.editor.getSelectedText() || this.sql, this.script)
+            },
+            historySelected (sql) {
+                this.sql = sql
+                this.editor.focus()
             }
         }
     }
