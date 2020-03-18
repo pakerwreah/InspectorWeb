@@ -142,6 +142,9 @@
                     return req.response
                 }
                 return undefined
+            },
+            total_requests () {
+                return Object.keys(this.requests).length
             }
         },
         watch: {
@@ -153,6 +156,9 @@
                 } else {
                     this.clear_visible = false
                 }
+            },
+            total_requests (count) {
+                this.$emit('requests', count)
             }
         },
         mounted () {
@@ -161,6 +167,7 @@
 
             this.clear_visible = this.currentPage
             this.getHistory().then(() => {
+                this.autoClearRequests()
                 const div = this.$refs.scroll
                 div.scrollTop = div.scrollHeight
                 this.openRequest()
@@ -218,6 +225,8 @@
 
                         this.$set(this.requests, data.uid, data)
                         db.putRequest(data)
+
+                        this.autoClearRequests()
                     }
                 }
 
@@ -270,6 +279,17 @@
                 }
                 this.session_list = sortBy(Object.values(session_list), 'timestamp')
                 this.requests = requests
+            },
+            autoClearRequests () {
+                const limit = 250
+
+                if (this.total_requests > limit) {
+                    this.clearPreviousRequests()
+
+                    if (this.total_requests > limit) {
+                        this.clearEndedRequests()
+                    }
+                }
             },
             clearAllRequests () {
                 this.session_list = []
