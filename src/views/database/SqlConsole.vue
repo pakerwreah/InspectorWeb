@@ -1,9 +1,8 @@
 <template>
     <div class="console-wrapper">
         <div class="d-flex align-center">
-            <!-- TODO: sql history -->
-            <v-btn v-if="false" icon x-small color="neutral" class="ml-3" @click="history_popup = true">
-                <v-icon>mdi-file-document-box-search-outline</v-icon>
+            <v-btn icon x-small color="neutral" class="ml-3" @click="history_popup = true">
+                <v-icon>mdi-history</v-icon>
             </v-btn>
             <v-btn icon small color="success" class="ml-2" @click="executeQuery">
                 <v-icon>mdi-play</v-icon>
@@ -14,16 +13,18 @@
                         label="Script"
                         dense hide-details />
         </div>
-        <editor ref="console"
+        <Editor ref="console"
                 v-model="sql"
                 lang="mysql"
                 :theme="theme"
                 :options="editorOptions" />
+
+        <SqlHistory v-model="history_popup" @selected="historySelected" />
     </div>
 </template>
 
 <script>
-    import editor from 'vue2-ace-editor'
+    import Editor from 'vue2-ace-editor'
 
     import 'brace/mode/mysql' // não tem sqlite =(
     import 'brace/theme/chrome'
@@ -32,9 +33,11 @@
     import 'brace/ext/searchbox'
     import 'brace/ext/keybinding_menu'
 
+    import SqlHistory from './SqlHistory'
+
     export default {
         name: 'SqlConsole',
-        components: { editor },
+        components: { Editor, SqlHistory },
         props: {
             value: String,
             schema: Object
@@ -42,7 +45,6 @@
         data: () => ({
             sql: '',
             script: false,
-            // TODO: sql history
             history_popup: false
         }),
         computed: {
@@ -90,6 +92,10 @@
             executeQuery () {
                 // noinspection JSUnresolvedFunction
                 this.$emit('query', this.editor.getSelectedText() || this.sql, this.script)
+            },
+            historySelected (sql) {
+                this.sql = sql
+                this.editor.focus()
             }
         }
     }

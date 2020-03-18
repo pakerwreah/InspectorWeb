@@ -41,9 +41,3 @@ export function decode (msg) {
   }
   return false
 }
-
-export function formatTimestamp (timestamp, full) {
-  const today = new Date()
-  const date = new Date(timestamp)
-  return (!full && today.toDateString() === date.toDateString()) ? date.toLocaleTimeString() : date.toLocaleString()
-}

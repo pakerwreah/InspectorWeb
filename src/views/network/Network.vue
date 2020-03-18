@@ -2,7 +2,7 @@
     <splitpanes class="network-panel default-theme fill-height">
         <pane style="min-width: 250px" :size="100 - detail_size">
             <!--suppress HtmlUnknownAttribute -->
-            <div ref="scroll" class="network-container" v-chat-scroll="{always: false, smooth: true}">
+            <div ref="scroll" class="network-container absolute-expand overflow-y-auto" v-chat-scroll="{always: false, smooth: true}">
                 <v-list v-if="session_list.length" dense>
                     <v-list-item-group v-model="selected" color="primary">
                         <div v-for="(s,i) in session_list" :key="i">
@@ -94,7 +94,8 @@
     import { pickBy, sortBy } from 'lodash'
     import filesize from 'filesize'
     import db from './database'
-    import { decode, formatTimestamp } from './utils'
+    import { decode } from './utils'
+    import { formatTimestamp } from '../../utils'
     import RequestViewer from './RequestViewer'
 
     /** @type WebSocket */
@@ -141,6 +142,9 @@
                     return req.response
                 }
                 return undefined
+            },
+            total_requests () {
+                return Object.keys(this.requests).length
             }
         },
         watch: {
@@ -152,6 +156,9 @@
                 } else {
                     this.clear_visible = false
                 }
+            },
+            total_requests (count) {
+                this.$emit('requests', count)
             }
         },
         mounted () {
@@ -160,6 +167,7 @@
 
             this.clear_visible = this.currentPage
             this.getHistory().then(() => {
+                this.autoClearRequests()
                 const div = this.$refs.scroll
                 div.scrollTop = div.scrollHeight
                 this.openRequest()
@@ -217,6 +225,8 @@
 
                         this.$set(this.requests, data.uid, data)
                         db.putRequest(data)
+
+                        this.autoClearRequests()
                     }
                 }
 
@@ -270,6 +280,17 @@
                 this.session_list = sortBy(Object.values(session_list), 'timestamp')
                 this.requests = requests
             },
+            autoClearRequests () {
+                const limit = 250
+
+                if (this.total_requests > limit) {
+                    this.clearPreviousRequests()
+
+                    if (this.total_requests > limit) {
+                        this.clearEndedRequests()
+                    }
+                }
+            },
             clearAllRequests () {
                 this.session_list = []
                 this.requests = {}
@@ -322,8 +343,8 @@
                     return value + ' ms'
                 }
             },
-            filesize: v => filesize(v),
-            formatTimestamp: v => formatTimestamp(v)
+            filesize,
+            formatTimestamp
         }
     }
 </script>
@@ -338,12 +359,6 @@
 
 <style scoped lang="scss">
     .network-container {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        top: 0;
-        overflow-y: auto;
 
         .request-item {
             min-height: 0;

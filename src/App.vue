@@ -8,7 +8,14 @@
                                         :complete="current_page === page.key"
                                         color="primary"
                                         editable>
-                            {{ page.text }}
+                            <span>
+                                {{ page.text }}
+                                <small v-if="page.key === Pages.Network.key && requests > 0"
+                                       class="relative"
+                                       style="bottom: 1px">
+                                    ({{ requests }})
+                                </small>
+                            </span>
                         </v-stepper-step>
                         <v-spacer></v-spacer>
                         <label style="cursor: pointer; display: flex">
@@ -24,7 +31,7 @@
                             <Database />
                         </v-stepper-content>
                         <v-stepper-content :step="Pages.Network.key">
-                            <Network :current-page="current_page === Pages.Network.key" />
+                            <Network :current-page="current_page === Pages.Network.key" @requests="setRequestsCount" />
                         </v-stepper-content>
                     </v-stepper-items>
                 </v-stepper>
@@ -63,7 +70,8 @@
             Database, Network
         },
         data: () => ({
-            current_page: Pages.Database.key
+            current_page: Pages.Database.key,
+            requests: 0
         }),
         computed: {
             version () {
@@ -92,6 +100,11 @@
             this.baseURL = localStorage.getItem('baseURL') || this.baseURL
             this.dark_mode = JSON.parse(localStorage.getItem('dark')) || false
             this.current_page = parseInt(localStorage.getItem('current_page')) || this.current_page
+        },
+        methods: {
+            setRequestsCount (count) {
+                this.requests = count
+            }
         }
     }
 </script>
