@@ -4,13 +4,15 @@
             <v-content>
                 <v-stepper v-model="current_page" non-linear>
                     <v-stepper-header>
-                        <v-stepper-step v-for="page in Pages" :key="page.key" :step="page.key"
-                                        :complete="current_page === page.key"
+                        <v-stepper-step v-for="(page, i) in pages"
+                                        :key="i"
+                                        :step="i+1"
+                                        :complete="current_page === i+1"
                                         color="primary"
                                         editable>
                             <span>
-                                {{ page.text }}
-                                <small v-if="page.key === Pages.Network.key && requests > 0"
+                                {{ page.name }}
+                                <small v-if="page.key === 'network' && requests > 0"
                                        class="relative"
                                        style="bottom: 1px">
                                     ({{ requests }})
@@ -27,11 +29,14 @@
                     </v-stepper-header>
 
                     <v-stepper-items>
-                        <v-stepper-content :step="Pages.Database.key">
+                        <v-stepper-content :step="1">
                             <Database />
                         </v-stepper-content>
-                        <v-stepper-content :step="Pages.Network.key">
-                            <Network :current-page="current_page === Pages.Network.key" @requests="setRequestsCount" />
+                        <v-stepper-content :step="2">
+                            <Network :active="current_page === 2" @requests="setRequestsCount" />
+                        </v-stepper-content>
+                        <v-stepper-content v-for="(plugin, i) in plugins" :key="plugin.key" :step="i+3">
+                            <Plugin :active="current_page === i+3" :plugin="plugin" />
                         </v-stepper-content>
                     </v-stepper-items>
                 </v-stepper>
@@ -58,26 +63,27 @@
 <script>
     import Database from './views/database/Database'
     import Network from './views/network/Network'
+    import Plugin from './views/plugin/Plugin'
 
-    const Pages = {
-        Database: { key: 1, text: 'Database' },
-        Network: { key: 2, text: 'Network' }
-    }
+    const pages = [
+        { key: 'database', name: 'Database' },
+        { key: 'network', name: 'Network' }
+    ]
 
     export default {
         name: 'App',
         components: {
-            Database, Network
+            Database, Network, Plugin
         },
         data: () => ({
-            current_page: Pages.Database.key,
+            plugins: [],
+            current_page: -1,
             requests: 0
         }),
         computed: {
             version () {
                 return process.env.VERSION
             },
-            Pages: () => Pages,
             icon_dark_mode () {
                 return this.dark_mode ? 'mdi-white-balance-sunny' : 'mdi-weather-night'
             },
@@ -89,6 +95,9 @@
                     localStorage.setItem('baseURL', value)
                     this.$http.defaults.baseURL = 'http://' + value
                 }
+            },
+            pages () {
+                return pages.concat(this.plugins)
             }
         },
         watch: {
@@ -99,7 +108,13 @@
         beforeMount () {
             this.baseURL = localStorage.getItem('baseURL') || this.baseURL
             this.dark_mode = JSON.parse(localStorage.getItem('dark')) || false
-            this.current_page = parseInt(localStorage.getItem('current_page')) || this.current_page
+            const current_page = parseInt(localStorage.getItem('current_page')) || 1
+
+            this.$http.get('/plugins').then(({ data }) => {
+                this.plugins = data
+            }).finally(() => {
+                this.current_page = Math.min(current_page, this.pages.length)
+            })
         },
         methods: {
             setRequestsCount (count) {

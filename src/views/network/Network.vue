@@ -39,7 +39,7 @@
                 <template v-slot:activator>
                     <v-tooltip left>
                         <template v-slot:activator="{ on }">
-                            <v-fab-transition>
+                            <v-fab-transition hide-on-leave>
                                 <v-btn v-show="clear_visible"
                                        @click.stop="clearEndedRequests"
                                        v-on="on"
@@ -112,7 +112,7 @@
         name: 'Network',
         components: { Splitpanes, Pane, RequestViewer },
         props: {
-            currentPage: Boolean
+            active: Boolean
         },
         data: () => ({
             connected: false,
@@ -148,8 +148,8 @@
             }
         },
         watch: {
-            currentPage (current) {
-                if (current) {
+            active (active) {
+                if (active) {
                     setTimeout(() => {
                         this.clear_visible = true
                     }, 300)
@@ -165,7 +165,7 @@
             this.nextItem = this.nextItem.bind(this)
             document.addEventListener('keydown', this.nextItem)
 
-            this.clear_visible = this.currentPage
+            this.clear_visible = this.active
             this.getHistory().then(() => {
                 this.autoClearRequests()
                 const div = this.$refs.scroll
@@ -188,7 +188,7 @@
         },
         methods: {
             nextItem (e) {
-                if (this.currentPage && this.selected !== undefined) {
+                if (this.active && this.selected !== undefined) {
                     if (e.keyCode === 38 && this.selected > 0) {
                         this.selected--
                     } else if (e.keyCode === 40 && this.selected < Object.keys(this.requests).length - 1) {
