@@ -4,6 +4,10 @@
             <!--suppress HtmlUnknownAttribute - don't break line inside <pre>, thanks! -->
             <pre v-if="json" :class="codestyle" v-highlightjs="body"><code class="json"></code></pre>
 
+            <div v-else-if="plugin.live" class='absolute-expand d-flex'>
+                <iframe ref="iframe" class='flex' :src='frame_src' @load="frame_loaded"></iframe>
+            </div>
+
             <div v-else v-html="body" />
         </div>
         <v-tooltip left open-delay="1200">
@@ -35,6 +39,8 @@
             plugin: Object
         },
         data: () => ({
+            load_uid: null,
+            loaded: false,
             loading: false,
             reload_visible: false,
             body: undefined,
@@ -43,6 +49,9 @@
         computed: {
             codestyle () {
                 return this.dark_mode ? 'dark' : 'light'
+            },
+            frame_src () {
+                return this.load_uid && `${this.$http.defaults.baseURL}/plugins/${this.plugin.key}?${this.load_uid}`
             }
         },
         watch: {
@@ -53,25 +62,54 @@
                             this.reload_visible = true
                         }, 300)
 
-                        this.reload()
+                        if (!this.loaded) {
+                            this.reload()
+                        }
                     } else {
                         this.reload_visible = false
                     }
                 },
                 immediate: true
-            }
+            },
+            codestyle: 'syncFrame'
         },
         methods: {
+            sendMessage (message) {
+                const iframe = this.$refs.iframe
+                if (iframe) {
+                    iframe.contentWindow.postMessage(message, '*')
+                }
+            },
+            syncFrame () {
+                this.sendMessage({
+                    plugin: this.plugin.key,
+                    host: this.$http.defaults.baseURL,
+                    theme: this.codestyle,
+                    colors: this.$vuetify.theme.currentTheme
+                })
+            },
+            frame_loaded () {
+                if (this.frame_src) {
+                    this.loaded = true
+                    this.loading = false
+                    this.syncFrame()
+                }
+            },
             reload () {
                 if (this.active && !this.loading) {
                     this.loading = true
-                    this.$http.get('/plugins/' + this.plugin.key)
-                        .then(({ data, headers }) => {
-                            this.json = headers['content-type'] === 'application/json'
-                            this.body = this.json ? JSON.stringify(data, null, 2) : data
-                        }).finally(() => {
-                            this.loading = false
-                        })
+                    if (this.plugin.live) {
+                        this.load_uid = Date.now()
+                    } else {
+                        this.$http.get('/plugins/' + this.plugin.key)
+                            .then(({ data, headers }) => {
+                                this.loaded = true
+                                this.json = headers['content-type'] === 'application/json'
+                                this.body = this.json ? JSON.stringify(data, null, 2) : data
+                            }).finally(() => {
+                                this.loading = false
+                            })
+                    }
                 }
             }
         }
@@ -81,6 +119,9 @@
 <style scoped lang="scss">
     .plugin-container pre {
         word-break: break-all;
+    }
+    iframe {
+        border: none;
     }
 </style>
 
