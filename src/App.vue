@@ -10,14 +10,15 @@
                                         :complete="current_page === i+1"
                                         color="primary"
                                         editable>
-                            <span>
+                            <v-layout>
                                 {{ page.name }}
-                                <small v-if="page.key === 'network' && requests > 0"
-                                       class="relative"
-                                       style="bottom: 1px">
-                                    ({{ requests }})
-                                </small>
-                            </span>
+                                <v-flex v-if="page.key === 'network' && requests > 0"
+                                        class="badge"
+                                        align-self-center
+                                        text-center>
+                                    {{ requests }}
+                                </v-flex>
+                            </v-layout>
                         </v-stepper-step>
                         <v-spacer></v-spacer>
                         <label style="cursor: pointer; display: flex">
@@ -128,6 +129,16 @@
         font-size: 12px;
         opacity: 0.7;
         margin-right: 10px;
+    }
+    .badge {
+        font-size: 9px;
+        border-radius: 8px;
+        line-height: 16px;
+        min-width: 16px;
+        background-color: #aaaaaa88;
+        padding: 0 3px;
+        position: relative;
+        left: 8px;
     }
 </style>
 
