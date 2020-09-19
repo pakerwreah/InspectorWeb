@@ -69,7 +69,7 @@
 
 <script>
     import { Splitpanes, Pane } from 'splitpanes'
-    import { formatTimestamp } from '../../utils'
+    import { formatTimestamp } from '@/utils'
 
     export default {
         name: 'SqlHistory',

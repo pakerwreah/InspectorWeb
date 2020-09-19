@@ -95,7 +95,7 @@
     import filesize from 'filesize'
     import db from './database'
     import { decode } from './utils'
-    import { formatTimestamp } from '../../utils'
+    import { formatTimestamp } from '@/utils'
     import RequestViewer from './RequestViewer'
 
     /** @type WebSocket */

@@ -73,7 +73,7 @@
     import copy from 'copy-text-to-clipboard'
     import saveAs from 'tiny-save-as'
     import filesize from 'filesize'
-    import { formatTimestamp } from '../../utils'
+    import { formatTimestamp } from '@/utils'
 
     export default {
         name: 'RequestViewer',
