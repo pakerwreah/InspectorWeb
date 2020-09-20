@@ -35,6 +35,11 @@ html {
     }
 
     // list
+
+    .v-list {
+        border-radius: 0;
+    }
+
     .theme--dark .v-list {
         background: var(--v-controls-darken1);
     }

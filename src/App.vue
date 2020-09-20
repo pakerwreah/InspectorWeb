@@ -21,12 +21,13 @@
                             </v-layout>
                         </v-stepper-step>
                         <v-spacer></v-spacer>
-                        <label style="cursor: pointer; display: flex">
-                            <v-flex align-self-center px-3>
-                                <v-icon>{{ icon_dark_mode }}</v-icon>
-                                <v-switch v-show="false" v-model="dark_mode" />
+                        <v-flex align-self-center pr-1 shrink>
+                            <v-flex align-self-center pr-1 shrink>
+                                <v-btn icon @click="settings_popup = true">
+                                    <v-icon>mdi-cog</v-icon>
+                                </v-btn>
                             </v-flex>
-                        </label>
+                        </v-flex>
                     </v-stepper-header>
 
                     <v-stepper-items>
@@ -34,7 +35,7 @@
                             <Database />
                         </v-stepper-content>
                         <v-stepper-content :step="2">
-                            <Network :active="current_page === 2" @requests="setRequestsCount" />
+                            <Network :active="current_page === 2" :sleep="settings.network_sleep" @requests="setRequestsCount" />
                         </v-stepper-content>
                         <v-stepper-content v-for="(plugin, i) in plugins" :key="plugin.key" :step="i+3">
                             <Plugin :active="current_page === i+3" :plugin="plugin" />
@@ -44,7 +45,7 @@
             </v-content>
 
             <v-footer app>
-                <v-flex xs2>
+                <v-flex>
                     <v-text-field
                             v-model="baseURL"
                             class="ip-field"
@@ -57,6 +58,7 @@
                     v{{ version }}
                 </span>
             </v-footer>
+            <Settings v-model="settings_popup" :settings.sync="settings" />
         </v-app>
     </div>
 </template>
@@ -65,6 +67,8 @@
     import Database from './views/database/Database'
     import Network from './views/network/Network'
     import Plugin from './views/plugin/Plugin'
+    import Settings from './views/settings/Settings'
+    import { settings as default_settings } from './views/settings/defaults'
 
     const pages = [
         { key: 'database', name: 'Database' },
@@ -74,19 +78,18 @@
     export default {
         name: 'App',
         components: {
-            Database, Network, Plugin
+            Database, Network, Plugin, Settings
         },
         data: () => ({
             plugins: [],
             current_page: -1,
-            requests: 0
+            requests: 0,
+            settings_popup: false,
+            settings: default_settings
         }),
         computed: {
             version () {
                 return process.env.VERSION
-            },
-            icon_dark_mode () {
-                return this.dark_mode ? 'mdi-white-balance-sunny' : 'mdi-weather-night'
             },
             baseURL: {
                 get () {
@@ -104,11 +107,16 @@
         watch: {
             current_page (page) {
                 localStorage.setItem('current_page', page)
+            },
+            settings_popup (open) {
+                if (!open) {
+                    localStorage.setItem('settings', JSON.stringify(this.settings))
+                }
             }
         },
         beforeMount () {
             this.baseURL = localStorage.getItem('baseURL') || this.baseURL
-            this.dark_mode = JSON.parse(localStorage.getItem('dark')) || false
+            this.settings = { ...default_settings, ...JSON.parse(localStorage.getItem('settings')) }
             const current_page = parseInt(localStorage.getItem('current_page')) || 1
 
             this.$http.get('/plugins').then(({ data }) => {
@@ -136,7 +144,7 @@
         line-height: 16px;
         min-width: 16px;
         background-color: #aaaaaa88;
-        padding: 0 3px;
+        padding: 0 3px 0 2px;
         position: relative;
         left: 8px;
     }
@@ -148,17 +156,21 @@
         padding: 6px !important;
     }
 
-    .ip-field.v-text-field--outlined {
-        fieldset {
-            border-width: 0 !important;
-        }
+    .ip-field {
+        width: 200px;
 
-        .v-input__slot {
-            min-height: 0 !important;
-            background-color: var(--v-controls-darken1);
+        &.v-text-field--outlined {
+            fieldset {
+                border-width: 0 !important;
+            }
 
-            input {
-                opacity: 0.7;
+            .v-input__slot {
+                min-height: 0 !important;
+                background-color: var(--v-controls-darken1);
+
+                input {
+                    opacity: 0.7;
+                }
             }
         }
     }

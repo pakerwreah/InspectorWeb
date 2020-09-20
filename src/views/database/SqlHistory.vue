@@ -1,7 +1,7 @@
 <template>
     <v-dialog v-model="open" content-class="sql-history-popup">
         <v-card height="100%" class="sql-history-container">
-            <v-card-title class="panel pa-1">
+            <v-card-title class="pa-1">
                 <v-layout class="text-center">
                     <v-flex>SQL History</v-flex>
                 </v-layout>
@@ -19,7 +19,7 @@
                                 <v-btn :value="false" small class="flex flex-basis-0">All</v-btn>
                                 <v-btn :value="true" small class="flex flex-basis-0">Favorites</v-btn>
                             </v-btn-toggle>
-                            <v-list class="sql-history-list pt-0 overflow-y-auto" dense>
+                            <v-list class="sql-history-list pt-0 overflow-y-auto fill-height" dense>
                                 <v-list-item-group v-model="selected" mandatory color="primary">
                                     <template v-for="(item, i) in items">
                                         <v-hover v-slot:default="{ hover }" :key="i">
@@ -248,5 +248,9 @@
         position: absolute;
         top: 5px;
         right: 4px;
+    }
+
+    .sql {
+        font-size: 14px;
     }
 </style>
