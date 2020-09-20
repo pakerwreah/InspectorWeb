@@ -78,7 +78,8 @@
     export default {
         name: 'RequestViewer',
         props: {
-            value: Object
+            value: Object,
+            sortParams: Boolean
         },
         data: () => ({
             details: { headers: '', body: '', large: false },
@@ -101,13 +102,22 @@
                 return (this.request && this.request.raw_headers) || ''
             },
             params () {
-                const params = this.get ? this.headers.url.search : (this.urlencoded && this.details.body)
+                let params = this.get ? this.headers.url.search : (this.urlencoded && this.details.body)
                 if (params) {
-                    return params
+                    params = params
                         .split(/[?&]/)
                         .map(it => it.replace('=', ': '))
-                        .join('\n')
-                        .trim()
+                        .map(it => decodeURIComponent(it))
+
+                    if (this.sortParams) {
+                        params = params
+                            .sort((a, b) => a.localeCompare(b, undefined, {
+                                numeric: true,
+                                sensitivity: 'base'
+                            }))
+                    }
+
+                    return params.join('\n').trim()
                 }
 
                 return null

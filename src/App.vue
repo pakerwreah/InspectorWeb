@@ -35,7 +35,7 @@
                             <Database />
                         </v-stepper-content>
                         <v-stepper-content :step="2">
-                            <Network :active="current_page === 2" :sleep="settings.network_sleep" @requests="setRequestsCount" />
+                            <Network :active="current_page === 2" :settings="settings.network" @requests="setRequestsCount" />
                         </v-stepper-content>
                         <v-stepper-content v-for="(plugin, i) in plugins" :key="plugin.key" :step="i+3">
                             <Plugin :active="current_page === i+3" :plugin="plugin" />

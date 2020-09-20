@@ -11,10 +11,11 @@
                     <v-icon small>mdi-close</v-icon>
                 </v-btn>
             </v-card-title>
+            <v-divider light />
             <v-card-text class="pa-0 settings-content relative">
                 <v-layout class="absolute-expand">
                     <v-flex xs3>
-                        <v-list class="fill-height" color="controls">
+                        <v-list class="pt-0 fill-height" color="controls">
                             <v-list-item-group v-model="selected" mandatory>
                                 <v-list-item v-for="page in pages" :key="page">
                                     <v-list-item-content>
@@ -35,10 +36,11 @@
                             </v-radio-group>
                         </v-container>
                         <v-container v-if="selected === 1">
-                            <v-switch v-model="settings.network_sleep" label="Disconnect when Network is not selected" hide-details />
+                            <v-switch v-model="settings.network.sleep" label="Disconnect when Network is not selected" hide-details />
                             <v-flex offset-xs1>
                                 <small>(This helps to prevent unnecessary memory and cpu usage)</small>
                             </v-flex>
+                            <v-switch v-model="settings.network.sort_params" label="Sort request parameters" hide-details />
                         </v-container>
                     </v-flex>
                 </v-layout>

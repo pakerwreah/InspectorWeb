@@ -79,7 +79,7 @@
         <pane :size="detail_size">
             <splitpanes class="default-theme fill-height" horizontal>
                 <pane>
-                    <RequestViewer v-model="selected_request" />
+                    <RequestViewer v-model="selected_request" :sort-params="settings.sort_params" />
                 </pane>
                 <pane>
                     <RequestViewer v-model="selected_response" />
@@ -103,7 +103,7 @@
         components: { Splitpanes, Pane, RequestViewer },
         props: {
             active: Boolean,
-            sleep: Boolean
+            settings: Object
         },
         data: () => ({
             session_list: [],
@@ -153,7 +153,7 @@
                         this.connect()
                     } else {
                         this.clear_visible = false
-                        if (this.sleep) {
+                        if (this.settings.sleep) {
                             this.disconnect()
                         } else {
                             this.connect()
@@ -162,7 +162,7 @@
                 },
                 immediate: true
             },
-            sleep (sleep) {
+            'settings.sleep' (sleep) {
                 if (!this.active) {
                     if (sleep) {
                         this.disconnect()
@@ -235,7 +235,7 @@
                 this.closeSocket(this.ws_request)
                 this.ws_request = null
 
-                if (!this.active && this.sleep) {
+                if (!this.active && this.settings.sleep) {
                     return
                 }
 
@@ -286,7 +286,7 @@
                 this.closeSocket(this.ws_response)
                 this.ws_response = null
 
-                if (!this.active && this.sleep) {
+                if (!this.active && this.settings.sleep) {
                     return
                 }
 
