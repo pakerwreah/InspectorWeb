@@ -97,7 +97,7 @@
                 },
                 set (value) {
                     localStorage.setItem('baseURL', value)
-                    this.$http.defaults.baseURL = 'http://' + value
+                    this.$http.defaults.baseURL = location.protocol + '//' + value
                 }
             },
             pages () {

@@ -3,7 +3,7 @@ import axios from 'axios'
 import VueAxios from 'vue-axios'
 
 const http = axios.create({
-  baseURL: 'http://localhost:30000',
+  baseURL: location.protocol + '//localhost:30000',
   timeout: 30000
 })
 
