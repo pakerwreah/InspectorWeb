@@ -1,7 +1,7 @@
 name: GH Pages CI
 
 on:
-  push:
+  pull_request:
     branches: [ develop ]
 
 jobs:
