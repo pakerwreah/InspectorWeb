@@ -58,7 +58,7 @@
     "last 2 versions"
   ],
   "gitHooks": {
-    "pre-commit": "lint-staged"
+    "pre-push": "lint-staged"
   },
   "lint-staged": {
     "*.{js,vue}": [
