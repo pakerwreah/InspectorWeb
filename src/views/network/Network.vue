@@ -185,8 +185,6 @@
                 const div = this.$refs.scroll
                 div.scrollTop = div.scrollHeight
             })
-
-            window.onbeforeunload = this.disconnect
         },
         beforeDestroy () {
             document.removeEventListener('keydown', this.nextItem)
