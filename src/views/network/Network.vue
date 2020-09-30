@@ -79,7 +79,7 @@
         <pane :size="detail_size">
             <splitpanes class="default-theme fill-height" horizontal>
                 <pane>
-                    <RequestViewer v-model="selected_request" />
+                    <RequestViewer v-model="selected_request" :sort-params="settings.sort_params" />
                 </pane>
                 <pane>
                     <RequestViewer v-model="selected_response" />
@@ -95,31 +95,27 @@
     import filesize from 'filesize'
     import db from './database'
     import { decode } from './utils'
-    import { formatTimestamp } from '../../utils'
+    import { formatTimestamp } from '@/utils'
     import RequestViewer from './RequestViewer'
-
-    /** @type WebSocket */
-    let ws_request = null
-    /** @type WebSocket */
-    let ws_response = null
-
-    const newSession = () => ({
-        timestamp: new Date().getTime(),
-        requests: []
-    })
 
     export default {
         name: 'Network',
         components: { Splitpanes, Pane, RequestViewer },
         props: {
-            active: Boolean
+            active: Boolean,
+            settings: Object
         },
         data: () => ({
-            connected: false,
             session_list: [],
             requests: {},
             selected: undefined,
-            clear_visible: false
+            clear_visible: false,
+            /** @type WebSocket */
+            ws_request: null,
+            /** @type WebSocket */
+            ws_response: null,
+            ws_request_reconnect_timeout: null,
+            ws_response_reconnect_timeout: null
         }),
         computed: {
             detail_size () {
@@ -148,13 +144,31 @@
             }
         },
         watch: {
-            active (active) {
-                if (active) {
-                    setTimeout(() => {
-                        this.clear_visible = true
-                    }, 300)
-                } else {
-                    this.clear_visible = false
+            active: {
+                handler (active) {
+                    if (active) {
+                        setTimeout(() => {
+                            this.clear_visible = true
+                        }, 300)
+                        this.connect()
+                    } else {
+                        this.clear_visible = false
+                        if (this.settings.sleep) {
+                            this.disconnect()
+                        } else {
+                            this.connect()
+                        }
+                    }
+                },
+                immediate: true
+            },
+            'settings.sleep' (sleep) {
+                if (!this.active) {
+                    if (sleep) {
+                        this.disconnect()
+                    } else {
+                        this.connect()
+                    }
                 }
             },
             total_requests (count) {
@@ -170,23 +184,35 @@
                 this.autoClearRequests()
                 const div = this.$refs.scroll
                 div.scrollTop = div.scrollHeight
-                this.openRequest()
-                this.openResponse()
             })
         },
         beforeDestroy () {
             document.removeEventListener('keydown', this.nextItem)
-
-            if (ws_request) {
-                ws_request.close()
-                ws_request = null
-            }
-            if (ws_response) {
-                ws_response.close()
-                ws_response = null
-            }
+            this.disconnect()
         },
         methods: {
+            connect () {
+                if (!this.ws_request) {
+                    this.openRequest()
+                }
+                if (!this.ws_response) {
+                    this.openResponse()
+                }
+            },
+            disconnect () {
+                this.closeSocket(this.ws_request)
+                this.ws_request = null
+
+                this.closeSocket(this.ws_response)
+                this.ws_response = null
+            },
+            closeSocket (ws) {
+                if (ws) {
+                    ws.onmessage = null
+                    ws.onclose = null
+                    ws.close()
+                }
+            },
             nextItem (e) {
                 if (this.active && this.selected !== undefined) {
                     if (e.keyCode === 38 && this.selected > 0) {
@@ -199,8 +225,21 @@
             host () {
                 return this.$http.defaults.baseURL.substr(7)
             },
+            newSession: () => ({
+                timestamp: new Date().getTime(),
+                requests: []
+            }),
             openRequest () {
-                const ws = ws_request = new WebSocket(`ws://${this.host()}/network/request`)
+                this.closeSocket(this.ws_request)
+                this.ws_request = null
+
+                if (!this.active && this.settings.sleep) {
+                    return
+                }
+
+                let initSession = true
+
+                const ws = this.ws_request = new WebSocket(`ws://${this.host()}/network/request`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -210,9 +249,9 @@
                 ws.onmessage = (msg) => {
                     const data = decode(msg)
                     if (data) {
-                        if (!this.connected || !this.session_list.length) {
-                            this.session_list.push(newSession())
-                            this.connected = true
+                        if (initSession || !this.session_list.length) {
+                            this.session_list.push(this.newSession())
+                            initSession = false
                         }
                         data.session = this.session.timestamp
                         data.timestamp = new Date().getTime()
@@ -231,14 +270,25 @@
                 }
 
                 ws.onclose = () => {
-                    this.connected = false
-                    if (ws_request === ws) {
-                        setTimeout(() => this.openRequest(), 3000)
+                    if (this.ws_request === ws) {
+                        console.info('Request channel closed!')
+                        this.ws_request = null
+                        if (this.ws_request_reconnect_timeout) {
+                            clearTimeout(this.ws_request_reconnect_timeout)
+                        }
+                        this.ws_request_reconnect_timeout = setTimeout(() => this.openRequest(), 3000)
                     }
                 }
             },
             openResponse () {
-                const ws = ws_response = new WebSocket(`ws://${this.host()}/network/response`)
+                this.closeSocket(this.ws_response)
+                this.ws_response = null
+
+                if (!this.active && this.settings.sleep) {
+                    return
+                }
+
+                const ws = this.ws_response = new WebSocket(`ws://${this.host()}/network/response`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -261,8 +311,13 @@
                 }
 
                 ws.onclose = () => {
-                    if (ws_response === ws) {
-                        setTimeout(() => this.openResponse(), 3000)
+                    if (this.ws_response === ws) {
+                        console.info('Response channel closed!')
+                        this.ws_response = null
+                        if (this.ws_response_reconnect_timeout) {
+                            clearTimeout(this.ws_response_reconnect_timeout)
+                        }
+                        this.ws_response_reconnect_timeout = setTimeout(() => this.openResponse(), 3000)
                     }
                 }
             },
@@ -271,7 +326,7 @@
                 const session_list = {}
                 const requests = {}
                 for (const req of history) {
-                    const session = session_list[req.session] || newSession()
+                    const session = session_list[req.session] || this.newSession()
                     session.timestamp = req.session
                     session.requests.push(req.uid)
                     session_list[req.session] = session

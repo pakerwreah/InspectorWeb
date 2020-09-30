@@ -172,5 +172,9 @@
                 color: var(--v-neutral-base);
             }
         }
+
+        .ace_editor {
+            font: 14px/normal monospace;
+        }
     }
 </style>

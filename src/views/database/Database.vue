@@ -36,7 +36,7 @@
     import SqlConsole from './SqlConsole'
     import TableView from './TableView'
     import TreeView from './TreeView'
-    import { sleep, formatDuration } from '../../utils'
+    import { sleep, formatDuration } from '@/utils'
 
     export default {
         name: 'Database',
