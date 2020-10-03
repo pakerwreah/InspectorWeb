@@ -1,0 +1,29 @@
+name: Electron CI
+
+on:
+  release:
+    types: [ created ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+
+      - name: Build
+        run: |
+          npm install
+          vue-cli-service electron:build -mwl
+
+      - name: Upload
+        working-directory: dist_electron
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag_name="${GITHUB_REF##*/}"
+          hub release edit $(find . -maxdepth 1 -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.snap" \) -printf "-a \"%f\" ") -m "" "$tag_name"

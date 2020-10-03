@@ -1,0 +1,13 @@
+productName: "Inspector"
+appId: "br.newm.inspector"
+
+mac:
+  # TODO icon: "src/assets/icon.icns"
+  category: "public.app-category.developer-tools"
+
+linux:
+  # TODO icon: "src/assets/icon.png"
+  category: "Development"
+
+win:
+  # TODO icon: "src/assets/icon.ico"
