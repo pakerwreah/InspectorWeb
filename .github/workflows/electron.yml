@@ -15,7 +15,7 @@ jobs:
       - name: Build
         run: |
           npm install
-          vue-cli-service electron:build -mwl
+          npm run electron:build -- -mwl
 
       - name: Upload
         working-directory: dist_electron
