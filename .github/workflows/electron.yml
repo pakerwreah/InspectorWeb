@@ -23,5 +23,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag_name="${GITHUB_REF##*/}"
-          echo $(find . -maxdepth 1 -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.snap" \) -printf "-a %p ")
-          hub release edit $(find . -maxdepth 1 -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.snap" \) -printf "-a %p ") -m "" "$tag_name"
+          hub release edit -a $(find . -maxdepth 1 -type f -name "*.exe" -print) -m "" "$tag_name"
+          hub release edit -a $(find . -maxdepth 1 -type f -name "*.dmg" -print) -m "" "$tag_name"
+          hub release edit -a $(find . -maxdepth 1 -type f -name "*.snap" -print) -m "" "$tag_name"
