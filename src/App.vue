@@ -45,18 +45,59 @@
             </v-content>
 
             <v-footer app>
-                <v-flex>
-                    <v-text-field
-                            v-model="baseURL"
-                            class="ip-field"
-                            height="25"
-                            outlined
-                            hide-details />
-                </v-flex>
-                <v-spacer />
-                <span class="version">
-                    v{{ version }}
-                </span>
+                <v-layout>
+                    <v-flex>
+                        <v-select v-if="electron"
+                                  v-model="host"
+                                  :items="devices"
+                                  class="ip-field"
+                                  height="28"
+                                  append-icon=""
+                                  item-value='ip'
+                                  item-text='name'
+                                  :loading="!devices.length"
+                                  :menu-props="{ top: true, offsetY: true }"
+                                  return-object
+                                  outlined
+                                  hide-details>
+                            <template v-slot:selection="{item}">
+                                <v-layout>
+                                    <v-flex shrink align-self-center mr-5>
+                                        <v-icon>{{ deviceIcon(item.type) }}</v-icon>
+                                    </v-flex>
+                                    <v-flex align-self-center>
+                                        {{ [item.name, item.ip].filter(i => i).join(' - ') }}
+                                    </v-flex>
+                                </v-layout>
+                            </template>
+                            <template v-slot:item="{item}">
+                                <v-layout>
+                                    <v-flex shrink align-self-center mr-5>
+                                        <v-icon>{{ deviceIcon(item.type) }}</v-icon>
+                                    </v-flex>
+                                    <v-flex>
+                                        <v-col>
+                                            <v-row>{{ item.name }}</v-row>
+                                            <v-row><small>{{ item.ip }}</small></v-row>
+                                        </v-col>
+                                    </v-flex>
+                                </v-layout>
+                            </template>
+                        </v-select>
+                        <v-text-field v-else
+                                      v-model="baseURL"
+                                      class="ip-field"
+                                      height="25"
+                                      :error="baseURL.includes(':')"
+                                      outlined
+                                      hide-details />
+                    </v-flex>
+                    <v-flex shrink align-self-center>
+                        <span class="version">
+                            v{{ version }}
+                        </span>
+                    </v-flex>
+                </v-layout>
             </v-footer>
             <Settings v-model="settings_popup" :settings.sync="settings" />
         </v-app>
@@ -69,6 +110,7 @@
     import Plugin from './views/plugin/Plugin'
     import Settings from './views/settings/Settings'
     import { settings as default_settings } from './views/settings/defaults'
+    import { defaultsDeep, orderBy, debounce } from 'lodash'
 
     const pages = [
         { key: 'database', name: 'Database' },
@@ -85,19 +127,23 @@
             current_page: -1,
             requests: 0,
             settings_popup: false,
-            settings: default_settings
+            settings: default_settings,
+            host: { ip: '' },
+            devices: []
         }),
         computed: {
+            electron () {
+                return window.require && window.require('electron')
+            },
             version () {
                 return process.env.VERSION
             },
             baseURL: {
                 get () {
-                    return this.$http.defaults.baseURL.substr(7)
+                    return this.host.ip
                 },
-                set (value) {
-                    localStorage.setItem('baseURL', value)
-                    this.$http.defaults.baseURL = 'http://' + value
+                set (ip) {
+                    this.host = { ip }
                 }
             },
             pages () {
@@ -112,22 +158,59 @@
                 if (!open) {
                     localStorage.setItem('settings', JSON.stringify(this.settings))
                 }
+            },
+            host (host) {
+                this.$http.defaults.baseURL = `http://${host.ip}:${this.settings.port}`
+                localStorage.setItem('host', JSON.stringify(host))
+                this.reloadPlugins()
+            },
+            'settings.port' (port) {
+                if (this.electron) {
+                    const { ipcRenderer } = this.electron
+                    ipcRenderer.send('search-devices', port)
+                    ipcRenderer.on('search-devices', (e, newDevice) => {
+                        const devices = this.devices.filter(it => it.name !== newDevice.name)
+                        const { addresses, ...device } = newDevice
+                        for (const addr of addresses) {
+                            devices.push({ ...device, ...addr })
+                        }
+                        this.devices = orderBy(devices, ['name'])
+                    })
+                }
             }
         },
         beforeMount () {
-            this.baseURL = localStorage.getItem('baseURL') || this.baseURL
-            this.settings = { ...default_settings, ...JSON.parse(localStorage.getItem('settings')) }
+            if (this.electron) {
+                this.electron.ipcRenderer.removeAllListeners('search-devices')
+            }
+
+            this.host = JSON.parse(localStorage.getItem('host')) || { ip: 'localhost' }
+            this.settings = defaultsDeep(JSON.parse(localStorage.getItem('settings')), default_settings)
             const current_page = parseInt(localStorage.getItem('current_page')) || 1
 
-            this.$http.get('/plugins').then(({ data }) => {
-                this.plugins = data
-            }).finally(() => {
-                this.current_page = Math.min(current_page, this.pages.length)
-            })
+            this.loadPlugins(current_page)
         },
         methods: {
+            loadPlugins (current_page) {
+                return this.$http.get('/plugins').then(({ data }) => {
+                    this.plugins = data
+                }).finally(() => {
+                    this.current_page = Math.min(current_page, this.pages.length)
+                })
+            },
+            reloadPlugins: debounce(function () {
+                this.current_page = 1
+                this.loadPlugins(this.current_page)
+            }, 1500),
             setRequestsCount (count) {
                 this.requests = count
+            },
+            deviceIcon (type) {
+                switch (type) {
+                    case 'ios': return 'mdi-cellphone-iphone'
+                    case 'android': return 'mdi-cellphone-android'
+                    default: return 'mdi-laptop'
+                }
             }
         }
     }
@@ -138,6 +221,7 @@
         opacity: 0.7;
         margin-right: 10px;
     }
+
     .badge {
         font-size: 9px;
         border-radius: 8px;
@@ -154,22 +238,27 @@
     .v-footer {
         background-color: var(--v-controls-base) !important;
         padding: 6px !important;
-    }
 
-    .ip-field {
-        width: 200px;
+        .ip-field {
+            width: 350px;
+        }
 
-        &.v-text-field--outlined {
-            fieldset {
-                border-width: 0 !important;
+        .v-text-field {
+            &.error--text input {
+                color: var(--v-error-base);
             }
+            &.v-text-field--outlined {
+                fieldset {
+                    border-width: 0 !important;
+                }
 
-            .v-input__slot {
-                min-height: 0 !important;
-                background-color: var(--v-controls-darken1);
+                .v-input__slot {
+                    min-height: 0 !important;
+                    background-color: var(--v-controls-darken1);
 
-                input {
-                    opacity: 0.7;
+                    input {
+                        opacity: 0.7;
+                    }
                 }
             }
         }

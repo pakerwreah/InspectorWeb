@@ -35,7 +35,7 @@
                     </v-list-item-group>
                 </v-list>
             </div>
-            <v-speed-dial open-on-hover bottom right fixed class="close_menu mr-2">
+            <v-speed-dial open-on-hover bottom right fixed class="close_menu mr-8">
                 <template v-slot:activator>
                     <v-tooltip left>
                         <template v-slot:activator="{ on }">

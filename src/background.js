@@ -1,9 +1,10 @@
 'use strict'
 
-import { app, protocol, BrowserWindow } from 'electron'
+import { app, protocol, BrowserWindow, ipcMain } from 'electron'
 import windowStateKeeper from 'electron-window-state'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
+import searchDevices from '@/native/device-scanner'
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -18,8 +19,8 @@ protocol.registerSchemesAsPrivileged([
 
 function createWindow () {
   const savedWindowState = windowStateKeeper({
-    defaultWidth: 960,
-    defaultHeight: 660
+    defaultWidth: 1280,
+    defaultHeight: 800
   })
 
   /** @type Electron.BrowserWindowConstructorOptions */
@@ -32,7 +33,7 @@ function createWindow () {
     minHeight: 500,
     show: false,
     webPreferences: {
-      nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
+      nodeIntegration: true,
       spellcheck: false
     }
   }
@@ -71,7 +72,11 @@ function createWindow () {
 
   win.webContents.on('did-finish-load', () => {
     win.setTitle('')
-    win.show()
+    if (app.isPackaged) {
+      win.show()
+    } else {
+      win.openDevTools()
+    }
   })
 }
 
@@ -123,3 +128,9 @@ if (isDevelopment) {
     })
   }
 }
+
+ipcMain.on('search-devices', (e, port) => {
+  searchDevices(port).on('message', (message) => {
+    e.reply('search-devices', JSON.parse(message))
+  })
+})

@@ -143,7 +143,7 @@
                             await sleep(500)
                         } else {
                             // start over
-                            this.getDatabases()
+                            this.getDatabases().catch(() => false)
                         }
                     }
                 }

@@ -41,6 +41,12 @@
                                 <small>(This helps to prevent unnecessary memory and cpu usage)</small>
                             </v-flex>
                             <v-switch v-model="settings.network.sort_params" label="Sort request parameters" hide-details />
+                            <v-divider class="my-5" />
+                            <v-text-field
+                                    label="Port"
+                                    v-model="settings.port"
+                                    class="port-field"
+                                    hide-details />
                         </v-container>
                     </v-flex>
                 </v-layout>
@@ -109,9 +115,11 @@
 </script>
 
 <style lang="scss" scoped>
+    .settings-content {
+        min-height: 400px;
+    }
 
-.settings-content {
-    min-height: 400px;
-}
-
+    .port-field {
+        width: 80px;
+    }
 </style>
