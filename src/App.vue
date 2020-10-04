@@ -56,7 +56,7 @@
                                   item-value='ip'
                                   item-text='name'
                                   :loading="!devices.length"
-                                  :menu-props="{ top: true, offsetY: true }"
+                                  :menu-props="{ top: true, offsetY: true, maxHeight: '100%' }"
                                   return-object
                                   outlined
                                   hide-details>
@@ -78,7 +78,7 @@
                                     <v-flex>
                                         <v-col>
                                             <v-row>{{ item.name }}</v-row>
-                                            <v-row><small>{{ item.ip }}</small></v-row>
+                                            <v-row><small>{{ item.adapter }}: {{ item.ip }}</small></v-row>
                                         </v-col>
                                     </v-flex>
                                 </v-layout>
@@ -123,13 +123,14 @@
             Database, Network, Plugin, Settings
         },
         data: () => ({
+            mounted: false,
             plugins: [],
             current_page: -1,
             requests: 0,
             settings_popup: false,
             settings: default_settings,
             host: { ip: '' },
-            devices: []
+            m_devices: []
         }),
         computed: {
             electron () {
@@ -148,6 +149,9 @@
             },
             pages () {
                 return pages.concat(this.plugins)
+            },
+            devices () {
+                return this.m_devices.filter(d => !this.settings.adapter_blacklist.includes(d.adapter))
             }
         },
         watch: {
@@ -162,19 +166,21 @@
             host (host) {
                 this.$http.defaults.baseURL = `http://${host.ip}:${this.settings.port}`
                 localStorage.setItem('host', JSON.stringify(host))
-                this.reloadPlugins()
+                if (this.mounted) {
+                    this.reloadPlugins()
+                }
             },
-            'settings.port' (port) {
+            settings ({ port }) {
                 if (this.electron) {
                     const { ipcRenderer } = this.electron
                     ipcRenderer.send('search-devices', port)
                     ipcRenderer.on('search-devices', (e, newDevice) => {
-                        const devices = this.devices.filter(it => it.name !== newDevice.name)
+                        const devices = this.m_devices.filter(it => it.name !== newDevice.name)
                         const { addresses, ...device } = newDevice
                         for (const addr of addresses) {
                             devices.push({ ...device, ...addr })
                         }
-                        this.devices = orderBy(devices, ['name'])
+                        this.m_devices = orderBy(devices, ['name'])
                     })
                 }
             }
@@ -184,11 +190,16 @@
                 this.electron.ipcRenderer.removeAllListeners('search-devices')
             }
 
-            this.host = JSON.parse(localStorage.getItem('host')) || { ip: 'localhost' }
             this.settings = defaultsDeep(JSON.parse(localStorage.getItem('settings')), default_settings)
+            this.host = JSON.parse(localStorage.getItem('host')) || { ip: 'localhost' }
             const current_page = parseInt(localStorage.getItem('current_page')) || 1
 
             this.loadPlugins(current_page)
+        },
+        mounted () {
+            this.$nextTick(() => {
+                this.mounted = true
+            })
         },
         methods: {
             loadPlugins (current_page) {

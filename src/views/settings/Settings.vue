@@ -41,12 +41,23 @@
                                 <small>(This helps to prevent unnecessary memory and cpu usage)</small>
                             </v-flex>
                             <v-switch v-model="settings.network.sort_params" label="Sort request parameters" hide-details />
-                            <v-divider class="my-5" />
-                            <v-text-field
-                                    label="Port"
-                                    v-model="settings.port"
-                                    class="port-field"
-                                    hide-details />
+                            <v-divider class="mt-8 mb-5" />
+                            <v-row>
+                                <v-col cols="3">
+                                    <v-text-field
+                                            label="Port"
+                                            v-model="settings.port"
+                                            class="port-field"
+                                            hide-details />
+                                </v-col>
+                                <v-col>
+                                    <v-text-field
+                                            label="Adapter blacklist"
+                                            v-model="settings.adapter_blacklist"
+                                            class="adapter-blacklist"
+                                            hide-details />
+                                </v-col>
+                            </v-row>
                         </v-container>
                     </v-flex>
                 </v-layout>
