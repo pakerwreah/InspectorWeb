@@ -7,5 +7,5 @@ export const settings = {
     sort_params: true
   },
   port: '30000',
-  adapter_blacklist: 'vbox0 pdp_ip0'
+  adapter_blacklist: 'pdp_ip0 vboxnet4'
 }
