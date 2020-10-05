@@ -167,10 +167,12 @@
                 }
             },
             host (host) {
-                this.$http.defaults.baseURL = `http://${host.ip}:${this.settings.port}`
-                localStorage.setItem('host', JSON.stringify(host))
-                if (this.mounted) {
-                    this.reloadPlugins()
+                if (host.ip && (!this.electron || this.devices.map(d => d.ip).includes(host.ip))) {
+                    this.$http.defaults.baseURL = `http://${host.ip}:${this.settings.port}`
+                    localStorage.setItem('host', JSON.stringify(host))
+                    if (this.mounted) {
+                        this.reloadPlugins()
+                    }
                 }
             },
             settings ({ port }) {
@@ -192,6 +194,7 @@
             }
         },
         created () {
+            this.$http.defaults.baseURL = ''
             setInterval(this.ticker, 5000)
         },
         beforeMount () {
@@ -200,10 +203,12 @@
             }
 
             this.settings = defaultsDeep(JSON.parse(localStorage.getItem('settings')), default_settings)
-            this.host = JSON.parse(localStorage.getItem('host')) || { ip: 'localhost' }
+            this.host = JSON.parse(localStorage.getItem('host')) || {}
             const current_page = parseInt(localStorage.getItem('current_page')) || 1
 
-            this.loadPlugins(current_page)
+            if (this.host.ip) {
+                this.loadPlugins(current_page)
+            }
         },
         mounted () {
             this.$nextTick(() => {

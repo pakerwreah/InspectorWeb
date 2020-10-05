@@ -237,6 +237,10 @@
                     return
                 }
 
+                if (!this.$http.defaults.baseURL) {
+                    return
+                }
+
                 let initSession = true
 
                 const ws = this.ws_request = new WebSocket(`ws://${this.host()}/network/request`)
@@ -285,6 +289,10 @@
                 this.ws_response = null
 
                 if (!this.active && this.settings.sleep) {
+                    return
+                }
+
+                if (!this.$http.defaults.baseURL) {
                     return
                 }
 
