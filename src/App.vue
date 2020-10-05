@@ -130,7 +130,8 @@
             settings_popup: false,
             settings: default_settings,
             host: { ip: '' },
-            m_devices: []
+            m_devices: [],
+            now: Date.now()
         }),
         computed: {
             electron () {
@@ -151,7 +152,9 @@
                 return pages.concat(this.plugins)
             },
             devices () {
-                return this.m_devices.filter(d => !this.settings.adapter_blacklist.includes(d.adapter))
+                return this.m_devices
+                    .filter(d => !this.settings.adapter_blacklist.split(' ').includes(d.adapter))
+                    .filter(d => this.now - d.since < 5000)
             }
         },
         watch: {
@@ -173,17 +176,23 @@
             settings ({ port }) {
                 if (this.electron) {
                     const { ipcRenderer } = this.electron
+                    ipcRenderer.removeAllListeners('search-devices')
                     ipcRenderer.send('search-devices', port)
                     ipcRenderer.on('search-devices', (e, newDevice) => {
-                        const devices = this.m_devices.filter(it => it.name !== newDevice.name)
                         const { addresses, ...device } = newDevice
+                        let devices = [...this.m_devices]
+                        const since = Date.now()
                         for (const addr of addresses) {
-                            devices.push({ ...device, ...addr })
+                            devices = devices.filter(it => it.ip !== addr.ip)
+                            devices.push({ ...device, ...addr, since })
                         }
-                        this.m_devices = orderBy(devices, ['name'])
+                        this.m_devices = orderBy(devices, ['name', 'adapter'])
                     })
                 }
             }
+        },
+        created () {
+            setInterval(this.ticker, 5000)
         },
         beforeMount () {
             if (this.electron) {
@@ -202,6 +211,9 @@
             })
         },
         methods: {
+            ticker () {
+                this.now = Date.now()
+            },
             loadPlugins (current_page) {
                 return this.$http.get('/plugins').then(({ data }) => {
                     this.plugins = data
