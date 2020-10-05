@@ -55,18 +55,26 @@
                                   append-icon=""
                                   item-value='ip'
                                   item-text='name'
-                                  :loading="!devices.length"
+                                  :disabled="!devices.length"
+                                  :placeholder="devices.length ? 'Select your device' : 'No devices detected'"
                                   :menu-props="{ top: true, offsetY: true, maxHeight: '100%' }"
                                   return-object
                                   outlined
                                   hide-details>
+                            <template v-slot:append v-if="devices.length">
+                                <v-flex class="badge mr-1 controls--text text"
+                                        align-self-center
+                                        text-center>
+                                    {{ devices.length }}
+                                </v-flex>
+                            </template>
                             <template v-slot:selection="{item}">
                                 <v-layout>
                                     <v-flex shrink align-self-center mr-5>
                                         <v-icon>{{ deviceIcon(item.type) }}</v-icon>
                                     </v-flex>
-                                    <v-flex align-self-center>
-                                        {{ [item.name, item.ip].filter(i => i).join(' - ') }}
+                                    <v-flex align-self-center class="text-no-wrap overflow-hidden">
+                                        {{ item.name }} - {{ item.ip }}
                                     </v-flex>
                                 </v-layout>
                             </template>
@@ -272,6 +280,8 @@
         }
 
         .v-text-field {
+            min-width: min-content;
+
             &.error--text input {
                 color: var(--v-error-base);
             }
@@ -284,10 +294,27 @@
                     min-height: 0 !important;
                     background-color: var(--v-controls-darken1);
 
-                    input {
-                        opacity: 0.7;
+                    input:not(:disabled)::placeholder {
+                        color: var(--v-text-base);
+                    }
+
+                    .v-input__append-inner {
+                        margin-top: auto;
+                        margin-bottom: auto;
+                        .badge {
+                            opacity: 0.7;
+                            font-weight: bold;
+                        }
+                    }
+
+                    .v-select__selections {
+                        flex-wrap: nowrap;
                     }
                 }
+            }
+
+            &.v-input--is-label-active .v-input__append-inner {
+                display: none;
             }
         }
     }
