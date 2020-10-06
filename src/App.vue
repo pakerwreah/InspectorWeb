@@ -35,7 +35,7 @@
                             <Database />
                         </v-stepper-content>
                         <v-stepper-content :step="2">
-                            <Network :active="current_page === 2" :settings="settings.network" @requests="setRequestsCount" />
+                            <Network :active="current_page === 2" :settings="settings.network" :ip="ip" :port="settings.port" @requests="setRequestsCount" />
                         </v-stepper-content>
                         <v-stepper-content v-for="(plugin, i) in plugins" :key="plugin.key" :step="i+3">
                             <Plugin :active="current_page === i+3" :plugin="plugin" />
@@ -93,10 +93,10 @@
                             </template>
                         </v-select>
                         <v-text-field v-else
-                                      v-model="baseURL"
+                                      v-model="ip"
                                       class="ip-field"
                                       height="25"
-                                      :error="baseURL.includes(':')"
+                                      :error="ip.includes(':')"
                                       outlined
                                       hide-details />
                     </v-flex>
@@ -119,6 +119,7 @@
     import Settings from './views/settings/Settings'
     import { settings as default_settings } from './views/settings/defaults'
     import { defaultsDeep, orderBy, debounce } from 'lodash'
+    import { cancelRequests } from './plugins/http'
 
     const pages = [
         { key: 'database', name: 'Database' },
@@ -148,7 +149,7 @@
             version () {
                 return process.env.VERSION
             },
-            baseURL: {
+            ip: {
                 get () {
                     return this.host.ip
                 },
@@ -163,6 +164,14 @@
                 return this.m_devices
                     .filter(d => !this.settings.adapter_blacklist.split(' ').includes(d.adapter))
                     .filter(d => this.now - d.since < 5000)
+            },
+            deviceSelected () {
+                return !!this.devices.find(d => d.ip === this.host.ip)
+            },
+            reloadPlugins () {
+                return debounce(() => {
+                    this.loadPlugins()
+                }, this.electron ? 100 : 1500)
             }
         },
         watch: {
@@ -175,12 +184,17 @@
                 }
             },
             host (host) {
-                if (host.ip && (!this.electron || this.devices.map(d => d.ip).includes(host.ip))) {
-                    this.$http.defaults.baseURL = `http://${host.ip}:${this.settings.port}`
-                    localStorage.setItem('host', JSON.stringify(host))
+                if (host.ip && (!this.electron || this.deviceSelected)) {
+                    this.saveHost(host)
                     if (this.mounted) {
                         this.reloadPlugins()
                     }
+                }
+            },
+            deviceSelected (selected) {
+                if (selected) {
+                    this.saveHost(this.host)
+                    this.loadPlugins()
                 }
             },
             settings ({ port }) {
@@ -212,10 +226,9 @@
 
             this.settings = defaultsDeep(JSON.parse(localStorage.getItem('settings')), default_settings)
             this.host = JSON.parse(localStorage.getItem('host')) || {}
-            const current_page = parseInt(localStorage.getItem('current_page')) || 1
 
             if (this.host.ip) {
-                this.loadPlugins(current_page)
+                this.loadPlugins()
             }
         },
         mounted () {
@@ -227,17 +240,19 @@
             ticker () {
                 this.now = Date.now()
             },
-            loadPlugins (current_page) {
+            saveHost (host) {
+                this.$http.defaults.baseURL = `http://${host.ip}:${this.settings.port}`
+                localStorage.setItem('host', JSON.stringify(host))
+            },
+            loadPlugins () {
+                cancelRequests()
                 return this.$http.get('/plugins').then(({ data }) => {
                     this.plugins = data
                 }).finally(() => {
-                    this.current_page = Math.min(current_page, this.pages.length)
+                    const current_page = parseInt(localStorage.getItem('current_page'))
+                    this.current_page = Math.min(Math.max(1, current_page), this.pages.length)
                 })
             },
-            reloadPlugins: debounce(function () {
-                this.current_page = 1
-                this.loadPlugins(this.current_page)
-            }, 1500),
             setRequestsCount (count) {
                 this.requests = count
             },
