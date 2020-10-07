@@ -94,8 +94,10 @@
                         </v-select>
                         <v-text-field v-else
                                       v-model="ip"
+                                      prefix="IP Address: "
                                       class="ip-field"
-                                      height="25"
+                                      placeholder="___.___.___.___"
+                                      height="28"
                                       :error="ip.includes(':')"
                                       outlined
                                       hide-details />
@@ -153,7 +155,7 @@
             },
             ip: {
                 get () {
-                    return this.host.ip
+                    return this.host.ip || ''
                 },
                 set (ip) {
                     this.host = { ip }
@@ -186,9 +188,9 @@
                 }
             },
             host (host) {
-                if (host.ip && (!this.electron || this.deviceSelected)) {
+                if (host.ip) {
                     this.saveHost(host)
-                    if (this.mounted) {
+                    if (this.mounted && (!this.electron || this.deviceSelected)) {
                         this.reloadPlugins()
                     }
                 }
@@ -230,7 +232,9 @@
             this.host = JSON.parse(localStorage.getItem('host')) || {}
 
             if (this.host.ip) {
-                this.loadPlugins()
+                this.$nextTick(() => {
+                    this.loadPlugins()
+                })
             }
         },
         mounted () {
@@ -293,10 +297,7 @@
         padding: 6px !important;
 
         .ip-field {
-            width: 350px;
-        }
-
-        .v-text-field {
+            width: 245px;
             min-width: min-content;
 
             &.error--text input {
@@ -311,7 +312,7 @@
                     min-height: 0 !important;
                     background-color: var(--v-controls-darken1);
 
-                    input:not(:disabled)::placeholder {
+                    input:not(:disabled):not(:empty)::placeholder {
                         color: var(--v-text-base);
                     }
 
