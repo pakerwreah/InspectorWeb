@@ -35,7 +35,7 @@
                     </v-list-item-group>
                 </v-list>
             </div>
-            <v-speed-dial open-on-hover bottom right fixed class="close_menu mr-8">
+            <v-speed-dial open-on-hover bottom right fixed class="close_menu">
                 <template v-slot:activator>
                     <v-tooltip left>
                         <template v-slot:activator="{ on }">
@@ -167,7 +167,7 @@
                             this.clear_visible = true
                             const div = this.$refs.scroll
                             div.scrollTop = div.scrollHeight
-                        }, 300)
+                        }, 500)
                         this.connect()
                     } else {
                         this.clear_visible = false
@@ -198,7 +198,6 @@
             this.nextItem = this.nextItem.bind(this)
             document.addEventListener('keydown', this.nextItem)
 
-            this.clear_visible = this.active
             this.getHistory().then(() => {
                 this.autoClearRequests()
                 this.$nextTick(() => {

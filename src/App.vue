@@ -101,9 +101,11 @@
                                       hide-details />
                     </v-flex>
                     <v-flex shrink align-self-center>
-                        <span class="version">
-                            v{{ version }}
-                        </span>
+                        <v-fade-transition>
+                            <span v-show="current_page === 1" class="version">
+                                v{{ version }}
+                            </span>
+                        </v-fade-transition>
                     </v-flex>
                 </v-layout>
             </v-footer>
