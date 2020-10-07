@@ -71,7 +71,6 @@ function createWindow () {
   })
 
   win.webContents.on('did-finish-load', () => {
-    win.setTitle('')
     if (app.isPackaged) {
       win.show()
     } else {
