@@ -104,9 +104,18 @@
                     </v-flex>
                     <v-flex shrink align-self-center>
                         <v-fade-transition>
-                            <span v-show="current_page === 1" class="version">
-                                v{{ version }}
-                            </span>
+                            <v-row v-show="current_page === 1" class="mr-2">
+                                <span class="version">
+                                    <span :class="{strike: release.name}">v{{ version }}</span>
+                                    <span v-if="release.name" class="white--text ml-2">v{{ release.name }}</span>
+                                </span>
+                                <v-icon v-if="release.name"
+                                        @click="open(release.url)"
+                                        class="green--text pointer ml-1"
+                                        small>
+                                    mdi-download
+                                </v-icon>
+                            </v-row>
                         </v-fade-transition>
                     </v-flex>
                 </v-layout>
@@ -146,7 +155,8 @@
             settings: default_settings,
             host: { ip: '' },
             m_devices: [],
-            now: Date.now()
+            now: Date.now(),
+            release: { name: '', url: '' }
         }),
         computed: {
             electron () {
@@ -246,8 +256,10 @@
             this.$nextTick(() => {
                 this.mounted = true
             })
+            this.checkUpdate()
         },
         methods: {
+            open,
             ticker () {
                 this.now = Date.now()
             },
@@ -273,6 +285,30 @@
                     android: 'mdi-cellphone-android'
                 }[type] || 'mdi-laptop'
             },
+            checkUpdate () {
+                this.$http.get('https://api.github.com/repos/pakerwreah/InspectorWeb/releases/latest')
+                    .then(({ data }) => {
+                        const { html_url, name } = data
+                        if (name) {
+                            const new_version = name.replace(/[^\d.]/, '')
+                            if (name !== new_version) {
+                                const p_old = this.version.split('.')
+                                const p_new = new_version.split('.')
+
+                                if (p_old.length === p_new.length) {
+                                    for (let i = 0; i < p_new.length; i++) {
+                                        if (parseInt(p_new[i]) < parseInt(p_old[i])) {
+                                            return
+                                        }
+                                    }
+                                    this.release = {
+                                        name: new_version,
+                                        url: html_url
+                                    }
+                                }
+                            }
+                        }
+                    })
             }
         }
     }
@@ -281,7 +317,6 @@
     .version {
         font-size: 12px;
         opacity: 0.7;
-        margin-right: 10px;
     }
 
     .badge {
@@ -347,6 +382,10 @@
             &.v-input--is-label-active .v-input__append-inner {
                 display: none;
             }
+        }
+
+        .strike {
+            text-decoration: line-through;
         }
     }
 </style>
