@@ -13,7 +13,7 @@
                             <v-layout>
                                 {{ page.name }}
                                 <v-flex v-if="page.key === 'network' && requests > 0"
-                                        class="badge"
+                                        class="badge step-badge"
                                         align-self-center
                                         text-center>
                                     {{ requests }}
@@ -51,27 +51,27 @@
                                   v-model="host"
                                   :items="devices"
                                   class="ip-field"
+                                  ref="devices"
                                   height="28"
                                   append-icon=""
                                   item-value='ip'
                                   item-text='name'
                                   :disabled="!devices.length"
                                   :placeholder="devices.length ? 'Select your device' : 'No devices detected'"
-                                  :menu-props="{ top: true, offsetY: true, maxHeight: '100%' }"
+                                  :menu-props="{ top: true, offsetY: true, maxHeight: '100%', nudgeTop: 8 }"
                                   return-object
                                   outlined
                                   hide-details>
-                            <template v-slot:append v-if="devices.length">
-                                <v-flex class="badge mr-1 controls--text text"
-                                        align-self-center
-                                        text-center>
-                                    {{ devices.length }}
+                            <template v-slot:prepend-inner v-if="!deviceSelected">
+                                <v-flex align-self-center shrink text-center>
+                                    <div v-if="devices.length" class="badge controls--text text">{{ devices.length }}</div>
+                                    <v-icon v-else dense class="help neutral--text">mdi-help-circle-outline</v-icon>
                                 </v-flex>
                             </template>
                             <template v-slot:selection="{item}">
                                 <v-layout>
-                                    <v-flex shrink align-self-center mr-5>
-                                        <v-icon>{{ deviceIcon(item.type) }}</v-icon>
+                                    <v-flex shrink align-self-center mr-2>
+                                        <v-icon dense>{{ deviceIcon(item.type) }}</v-icon>
                                     </v-flex>
                                     <v-flex align-self-center class="text-no-wrap overflow-hidden">
                                         {{ item.name }} - {{ item.ip }}
@@ -80,7 +80,7 @@
                             </template>
                             <template v-slot:item="{item}">
                                 <v-layout>
-                                    <v-flex shrink align-self-center mr-5>
+                                    <v-flex shrink align-self-center mr-4>
                                         <v-icon>{{ deviceIcon(item.type) }}</v-icon>
                                     </v-flex>
                                     <v-flex>
@@ -130,6 +130,8 @@
         { key: 'network', name: 'Network' }
     ]
 
+    const deviceTimeout = 8000
+
     export default {
         name: 'App',
         components: {
@@ -167,7 +169,7 @@
             devices () {
                 return this.m_devices
                     .filter(d => !this.settings.adapter_blacklist.split(' ').includes(d.adapter))
-                    .filter(d => this.now - d.since < 5000)
+                    .filter(d => this.now - d.since < deviceTimeout)
             },
             deviceSelected () {
                 return !!this.devices.find(d => d.ip === this.host.ip)
@@ -201,6 +203,9 @@
                     this.loadPlugins()
                 }
             },
+            devices () {
+                this.$refs.devices.$refs.menu.onResize()
+            },
             settings ({ port }) {
                 if (this.electron) {
                     const { ipcRenderer } = this.electron
@@ -214,14 +219,14 @@
                             devices = devices.filter(it => it.ip !== addr.ip)
                             devices.push({ ...device, ...addr, since })
                         }
-                        this.m_devices = orderBy(devices, ['name', 'adapter'])
+                        this.m_devices = orderBy(devices, ['name', 'adapter', 'ip'])
                     })
                 }
             }
         },
         created () {
             this.$http.defaults.baseURL = ''
-            setInterval(this.ticker, 5000)
+            setInterval(this.ticker, deviceTimeout)
         },
         beforeMount () {
             if (this.electron) {
@@ -263,11 +268,11 @@
                 this.requests = count
             },
             deviceIcon (type) {
-                switch (type) {
-                    case 'ios': return 'mdi-cellphone-iphone'
-                    case 'android': return 'mdi-cellphone-android'
-                    default: return 'mdi-laptop'
-                }
+                return {
+                    ios: 'mdi-cellphone-iphone',
+                    android: 'mdi-cellphone-android'
+                }[type] || 'mdi-laptop'
+            },
             }
         }
     }
@@ -285,9 +290,13 @@
         line-height: 16px;
         min-width: 16px;
         background-color: #aaaaaa88;
-        padding: 0 3px 0 2px;
-        position: relative;
-        left: 8px;
+        padding: 0 2px 0 2px;
+
+        &.step-badge {
+            position: relative;
+            left: 8px;
+            padding: 0 3px 0 2px;
+        }
     }
 </style>
 
@@ -303,6 +312,7 @@
             &.error--text input {
                 color: var(--v-error-base);
             }
+
             &.v-text-field--outlined {
                 fieldset {
                     border-width: 0 !important;
@@ -316,12 +326,15 @@
                         color: var(--v-text-base);
                     }
 
-                    .v-input__append-inner {
+                    .v-input__prepend-inner, .v-input__append-inner {
                         margin-top: auto;
                         margin-bottom: auto;
+                        opacity: 0.7;
+                        font-weight: bold;
+                        width: 30px;
+
                         .badge {
-                            opacity: 0.7;
-                            font-weight: bold;
+                            font-size: 12px;
                         }
                     }
 
