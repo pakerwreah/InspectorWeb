@@ -12,7 +12,8 @@
               :menu-props="{ top: true, offsetY: true, maxHeight: '100%', nudgeTop: 8 }"
               return-object
               outlined
-              hide-details>
+              hide-details
+              hide-selected>
         <template v-slot:prepend-inner v-if="!selected">
             <v-flex align-self-center shrink text-center>
                 <div v-if="devices.length" class="badge controls--text text">{{ devices.length }}</div>
@@ -37,6 +38,11 @@
                 <v-flex>
                     <v-col>
                         <v-row>{{ item.name }}</v-row>
+                        <v-row>
+                            <v-label v-if="item.appId" disabled>
+                                <small>{{ item.appId }} ({{ item.version }})</small>
+                            </v-label>
+                        </v-row>
                         <v-row><small>{{ item.adapter }}: {{ item.ip }}</small></v-row>
                     </v-col>
                 </v-flex>
@@ -92,7 +98,6 @@
 
             .v-input__slot {
                 min-height: 0 !important;
-                background-color: var(--v-controls-darken1);
 
                 input:not(:disabled):not(:empty)::placeholder {
                     color: var(--v-text-base);

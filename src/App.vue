@@ -96,7 +96,7 @@
         }
     ]
 
-    const deviceTimeout = 6000
+    const deviceTimeout = 8000
 
     export default {
         name: 'App',
@@ -174,17 +174,19 @@
                     ipcRenderer.send('search-devices', port)
                     ipcRenderer.on('search-devices', (e, newDevice) => {
                         const { addresses, ...device } = newDevice
-                        let devices = [...this.m_devices]
+                        let devices = this.devices
                         const since = Date.now()
+                        const keys = ['name', 'adapter', 'ip', 'appId', 'version']
                         for (const addr of addresses) {
-                            devices = devices.filter(it => it.ip !== addr.ip)
-                            devices.push({
+                            const obj = {
                                 ...device,
                                 ...addr,
                                 since
-                            })
+                            }
+                            devices = devices.filter(it => keys.some(k => it[k] !== obj[k]))
+                            devices.push(obj)
                         }
-                        this.m_devices = orderBy(devices, ['name', 'adapter', 'ip'])
+                        this.m_devices = orderBy(devices, keys)
                     })
                 }
             }
