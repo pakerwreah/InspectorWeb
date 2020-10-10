@@ -90,6 +90,7 @@
 </template>
 
 <script>
+    // noinspection ES6CheckImport
     import { Splitpanes, Pane } from 'splitpanes'
     import { pickBy, sortBy, debounce } from 'lodash'
     import filesize from 'filesize'
@@ -425,7 +426,7 @@
             },
             stickyBottom () {
                 const el = this.$refs.scroll
-                if (el.scrollTop + el.clientHeight >= 0.98 * el.scrollHeight) {
+                if (el.scrollTop + el.clientHeight >= 0.98 * el.scrollHeight - 10) {
                     this.$nextTick(() => {
                         el.scroll({
                             top: el.scrollHeight,

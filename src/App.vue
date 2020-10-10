@@ -35,7 +35,7 @@
                             <Database />
                         </v-stepper-content>
                         <v-stepper-content :step="2">
-                            <Network :active="current_page === 2" :settings="settings.network" :ip="ip" :port="settings.port" @requests="setRequestsCount" />
+                            <Network :active="current_page === 2" :settings="settings.network" :ip="host.ip" :port="settings.port" @requests="setRequestsCount" />
                         </v-stepper-content>
                         <v-stepper-content v-for="(plugin, i) in plugins" :key="plugin.key" :step="i+3">
                             <Plugin :active="current_page === i+3" :plugin="plugin" />
@@ -47,69 +47,17 @@
             <v-footer app>
                 <v-layout>
                     <v-flex>
-                        <v-select v-if="electron"
-                                  v-model="host"
-                                  :items="devices"
-                                  class="ip-field"
-                                  ref="devices"
-                                  height="28"
-                                  append-icon=""
-                                  item-value='ip'
-                                  item-text='name'
-                                  :disabled="!devices.length"
-                                  :placeholder="devices.length ? 'Select your device' : 'No devices detected'"
-                                  :menu-props="{ top: true, offsetY: true, maxHeight: '100%', nudgeTop: 8 }"
-                                  return-object
-                                  outlined
-                                  hide-details>
-                            <template v-slot:prepend-inner v-if="!deviceSelected">
-                                <v-flex align-self-center shrink text-center>
-                                    <div v-if="devices.length" class="badge controls--text text">{{ devices.length }}</div>
-                                    <v-icon v-else dense class="help neutral--text">mdi-help-circle-outline</v-icon>
-                                </v-flex>
-                            </template>
-                            <template v-slot:selection="{item}">
-                                <v-layout>
-                                    <v-flex shrink align-self-center mr-2>
-                                        <v-icon dense>{{ deviceIcon(item.type) }}</v-icon>
-                                    </v-flex>
-                                    <v-flex align-self-center class="text-no-wrap overflow-hidden">
-                                        {{ item.name }} - {{ item.ip }}
-                                    </v-flex>
-                                </v-layout>
-                            </template>
-                            <template v-slot:item="{item}">
-                                <v-layout>
-                                    <v-flex shrink align-self-center mr-4>
-                                        <v-icon>{{ deviceIcon(item.type) }}</v-icon>
-                                    </v-flex>
-                                    <v-flex>
-                                        <v-col>
-                                            <v-row>{{ item.name }}</v-row>
-                                            <v-row><small>{{ item.adapter }}: {{ item.ip }}</small></v-row>
-                                        </v-col>
-                                    </v-flex>
-                                </v-layout>
-                            </template>
-                        </v-select>
-                        <v-text-field v-else
-                                      v-model="ip"
-                                      prefix="IP Address: "
-                                      class="ip-field"
-                                      placeholder="___.___.___.___"
-                                      height="28"
-                                      :error="ip.includes(':')"
-                                      outlined
-                                      hide-details />
+                        <DevicePicker v-if="electron" v-model="host" :devices="devices" />
+                        <IPTextField v-else v-model="host" />
                     </v-flex>
                     <v-flex shrink align-self-center>
                         <v-fade-transition>
                             <v-row v-show="current_page === 1" class="mr-2">
                                 <span class="version">
-                                    <span :class="{strike: release.name}">v{{ version }}</span>
-                                    <span v-if="release.name" class="white--text ml-2">v{{ release.name }}</span>
+                                    <span :class="{strike: release}">v{{ version }}</span>
+                                    <span v-if="release" class="white--text ml-2">v{{ release.name }}</span>
                                 </span>
-                                <v-icon v-if="release.name"
+                                <v-icon v-if="release"
                                         @click="open(release.url)"
                                         class="green--text pointer ml-1"
                                         small>
@@ -130,21 +78,35 @@
     import Network from './views/network/Network'
     import Plugin from './views/plugin/Plugin'
     import Settings from './views/settings/Settings'
+    import DevicePicker from './components/DevicePicker'
+    import IPTextField from './components/IPTextField'
     import { settings as default_settings } from './views/settings/defaults'
     import { defaultsDeep, orderBy, debounce } from 'lodash'
     import { cancelRequests } from './plugins/http'
+    import checkUpdate from './plugins/update'
 
     const pages = [
-        { key: 'database', name: 'Database' },
-        { key: 'network', name: 'Network' }
+        {
+            key: 'database',
+            name: 'Database'
+        },
+        {
+            key: 'network',
+            name: 'Network'
+        }
     ]
 
-    const deviceTimeout = 8000
+    const deviceTimeout = 6000
 
     export default {
         name: 'App',
         components: {
-            Database, Network, Plugin, Settings
+            Database,
+            Network,
+            Plugin,
+            Settings,
+            DevicePicker,
+            IPTextField
         },
         data: () => ({
             mounted: false,
@@ -156,7 +118,7 @@
             host: { ip: '' },
             m_devices: [],
             now: Date.now(),
-            release: { name: '', url: '' }
+            release: undefined
         }),
         computed: {
             electron () {
@@ -164,14 +126,6 @@
             },
             version () {
                 return process.env.VERSION
-            },
-            ip: {
-                get () {
-                    return this.host.ip || ''
-                },
-                set (ip) {
-                    this.host = { ip }
-                }
             },
             pages () {
                 return pages.concat(this.plugins)
@@ -213,9 +167,6 @@
                     this.loadPlugins()
                 }
             },
-            devices () {
-                this.$refs.devices.$refs.menu.onResize()
-            },
             settings ({ port }) {
                 if (this.electron) {
                     const { ipcRenderer } = this.electron
@@ -227,7 +178,11 @@
                         const since = Date.now()
                         for (const addr of addresses) {
                             devices = devices.filter(it => it.ip !== addr.ip)
-                            devices.push({ ...device, ...addr, since })
+                            devices.push({
+                                ...device,
+                                ...addr,
+                                since
+                            })
                         }
                         this.m_devices = orderBy(devices, ['name', 'adapter', 'ip'])
                     })
@@ -256,7 +211,9 @@
             this.$nextTick(() => {
                 this.mounted = true
             })
-            this.checkUpdate()
+            checkUpdate(this.version).then(data => {
+                this.release = data
+            })
         },
         methods: {
             open,
@@ -278,37 +235,6 @@
             },
             setRequestsCount (count) {
                 this.requests = count
-            },
-            deviceIcon (type) {
-                return {
-                    ios: 'mdi-cellphone-iphone',
-                    android: 'mdi-cellphone-android'
-                }[type] || 'mdi-laptop'
-            },
-            checkUpdate () {
-                this.$http.get('https://api.github.com/repos/pakerwreah/InspectorWeb/releases/latest')
-                    .then(({ data }) => {
-                        const { html_url, name } = data
-                        if (name) {
-                            const new_version = name.replace(/[^\d.]/, '')
-                            if (name !== new_version) {
-                                const p_old = this.version.split('.')
-                                const p_new = new_version.split('.')
-
-                                if (p_old.length === p_new.length) {
-                                    for (let i = 0; i < p_new.length; i++) {
-                                        if (parseInt(p_new[i]) < parseInt(p_old[i])) {
-                                            return
-                                        }
-                                    }
-                                    this.release = {
-                                        name: new_version,
-                                        url: html_url
-                                    }
-                                }
-                            }
-                        }
-                    })
             }
         }
     }
@@ -319,19 +245,14 @@
         opacity: 0.7;
     }
 
-    .badge {
-        font-size: 9px;
-        border-radius: 8px;
-        line-height: 16px;
-        min-width: 16px;
-        background-color: #aaaaaa88;
-        padding: 0 2px 0 2px;
+    .step-badge {
+        position: relative;
+        left: 8px;
+        padding: 0 3px 0 2px !important;
+    }
 
-        &.step-badge {
-            position: relative;
-            left: 8px;
-            padding: 0 3px 0 2px;
-        }
+    .strike {
+        text-decoration: line-through;
     }
 </style>
 
@@ -340,52 +261,8 @@
         background-color: var(--v-controls-base) !important;
         padding: 6px !important;
 
-        .ip-field {
+        .v-text-field {
             width: 245px;
-            min-width: min-content;
-
-            &.error--text input {
-                color: var(--v-error-base);
-            }
-
-            &.v-text-field--outlined {
-                fieldset {
-                    border-width: 0 !important;
-                }
-
-                .v-input__slot {
-                    min-height: 0 !important;
-                    background-color: var(--v-controls-darken1);
-
-                    input:not(:disabled):not(:empty)::placeholder {
-                        color: var(--v-text-base);
-                    }
-
-                    .v-input__prepend-inner, .v-input__append-inner {
-                        margin-top: auto;
-                        margin-bottom: auto;
-                        opacity: 0.7;
-                        font-weight: bold;
-                        width: 30px;
-
-                        .badge {
-                            font-size: 12px;
-                        }
-                    }
-
-                    .v-select__selections {
-                        flex-wrap: nowrap;
-                    }
-                }
-            }
-
-            &.v-input--is-label-active .v-input__append-inner {
-                display: none;
-            }
-        }
-
-        .strike {
-            text-decoration: line-through;
         }
     }
 </style>

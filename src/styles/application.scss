@@ -173,5 +173,14 @@ html {
             transform: rotate(360deg);
         }
     }
+
+    .badge {
+        font-size: 9px;
+        border-radius: 8px;
+        line-height: 16px;
+        min-width: 16px;
+        background-color: #aaaaaa88;
+        padding: 0 2px;
+    }
 }
 

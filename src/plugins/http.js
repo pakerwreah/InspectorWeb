@@ -34,3 +34,5 @@ export const cancelRequests = () => {
   source.cancel()
   source = axios.CancelToken.source()
 }
+
+export default http
