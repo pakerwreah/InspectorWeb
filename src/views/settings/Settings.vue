@@ -41,6 +41,30 @@
                                 <small>(This helps to prevent unnecessary memory and cpu usage)</small>
                             </v-flex>
                             <v-switch v-model="settings.network.sort_params" label="Sort request parameters" hide-details />
+                            <v-row class="mt-2">
+                                <v-col cols="3">
+                                    <v-text-field
+                                            label="Port"
+                                            v-model="settings.port"
+                                            v-mask="'#####'"
+                                            hide-details />
+                                </v-col>
+                                <v-col cols="4">
+                                    <v-text-field
+                                            label="Clear requests after"
+                                            v-model="settings.network.limit"
+                                            v-mask="'#####'"
+                                            hide-details />
+                                </v-col>
+                            </v-row>
+                            <v-row>
+                                <v-col>
+                                    <v-text-field
+                                            label="Adapter blacklist"
+                                            v-model="settings.adapter_blacklist"
+                                            hide-details />
+                                </v-col>
+                            </v-row>
                         </v-container>
                     </v-flex>
                 </v-layout>
@@ -109,9 +133,7 @@
 </script>
 
 <style lang="scss" scoped>
-
-.settings-content {
-    min-height: 400px;
-}
-
+    .settings-content {
+        min-height: 400px;
+    }
 </style>

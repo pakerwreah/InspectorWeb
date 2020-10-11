@@ -60,7 +60,7 @@
                     if (active) {
                         setTimeout(() => {
                             this.reload_visible = true
-                        }, 300)
+                        }, 500)
 
                         if (!this.loaded) {
                             this.reload()

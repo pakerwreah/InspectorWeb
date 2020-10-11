@@ -13,7 +13,7 @@
                             <v-layout>
                                 {{ page.name }}
                                 <v-flex v-if="page.key === 'network' && requests > 0"
-                                        class="badge"
+                                        class="badge step-badge"
                                         align-self-center
                                         text-center>
                                     {{ requests }}
@@ -35,7 +35,7 @@
                             <Database />
                         </v-stepper-content>
                         <v-stepper-content :step="2">
-                            <Network :active="current_page === 2" :settings="settings.network" @requests="setRequestsCount" />
+                            <Network :active="current_page === 2" :settings="settings.network" :ip="host.ip" :port="settings.port" @requests="setRequestsCount" />
                         </v-stepper-content>
                         <v-stepper-content v-for="(plugin, i) in plugins" :key="plugin.key" :step="i+3">
                             <Plugin :active="current_page === i+3" :plugin="plugin" />
@@ -45,18 +45,28 @@
             </v-content>
 
             <v-footer app>
-                <v-flex>
-                    <v-text-field
-                            v-model="baseURL"
-                            class="ip-field"
-                            height="25"
-                            outlined
-                            hide-details />
-                </v-flex>
-                <v-spacer />
-                <span class="version">
-                    v{{ version }}
-                </span>
+                <v-layout>
+                    <v-flex>
+                        <DevicePicker v-if="electron" v-model="host" :devices="devices" />
+                        <IPTextField v-else v-model="host" />
+                    </v-flex>
+                    <v-flex shrink align-self-center>
+                        <v-fade-transition>
+                            <v-row v-show="current_page === 1" class="mr-2">
+                                <span class="version">
+                                    <span :class="{strike: release}">v{{ version }}</span>
+                                    <span v-if="release" class="white--text ml-2">v{{ release.name }}</span>
+                                </span>
+                                <v-icon v-if="release"
+                                        @click="open(release.url)"
+                                        class="green--text pointer ml-1"
+                                        small>
+                                    mdi-download
+                                </v-icon>
+                            </v-row>
+                        </v-fade-transition>
+                    </v-flex>
+                </v-layout>
             </v-footer>
             <Settings v-model="settings_popup" :settings.sync="settings" />
         </v-app>
@@ -68,40 +78,70 @@
     import Network from './views/network/Network'
     import Plugin from './views/plugin/Plugin'
     import Settings from './views/settings/Settings'
+    import DevicePicker from './components/DevicePicker'
+    import IPTextField from './components/IPTextField'
     import { settings as default_settings } from './views/settings/defaults'
+    import { defaultsDeep, orderBy, debounce } from 'lodash'
+    import { cancelRequests } from './plugins/http'
+    import checkUpdate from './plugins/update'
 
     const pages = [
-        { key: 'database', name: 'Database' },
-        { key: 'network', name: 'Network' }
+        {
+            key: 'database',
+            name: 'Database'
+        },
+        {
+            key: 'network',
+            name: 'Network'
+        }
     ]
+
+    const deviceTimeout = 8000
 
     export default {
         name: 'App',
         components: {
-            Database, Network, Plugin, Settings
+            Database,
+            Network,
+            Plugin,
+            Settings,
+            DevicePicker,
+            IPTextField
         },
         data: () => ({
+            mounted: false,
             plugins: [],
             current_page: -1,
             requests: 0,
             settings_popup: false,
-            settings: default_settings
+            settings: default_settings,
+            host: { ip: '' },
+            m_devices: [],
+            now: Date.now(),
+            release: undefined
         }),
         computed: {
+            electron () {
+                return window.require && window.require('electron')
+            },
             version () {
                 return process.env.VERSION
             },
-            baseURL: {
-                get () {
-                    return this.$http.defaults.baseURL.substr(7)
-                },
-                set (value) {
-                    localStorage.setItem('baseURL', value)
-                    this.$http.defaults.baseURL = 'http://' + value
-                }
-            },
             pages () {
                 return pages.concat(this.plugins)
+            },
+            devices () {
+                return this.m_devices
+                    .filter(d => !this.settings.adapter_blacklist.split(' ').includes(d.adapter))
+                    .filter(d => this.now - d.since < deviceTimeout)
+            },
+            deviceSelected () {
+                return !!this.devices.find(d => d.ip === this.host.ip)
+            },
+            reloadPlugins () {
+                return debounce(() => {
+                    this.loadPlugins()
+                }, this.electron ? 100 : 1500)
             }
         },
         watch: {
@@ -112,20 +152,89 @@
                 if (!open) {
                     localStorage.setItem('settings', JSON.stringify(this.settings))
                 }
+            },
+            host (host) {
+                if (host.ip) {
+                    this.saveHost(host)
+                    if (this.mounted && (!this.electron || this.deviceSelected)) {
+                        this.reloadPlugins()
+                    }
+                }
+            },
+            deviceSelected (selected) {
+                if (selected) {
+                    this.saveHost(this.host)
+                    this.loadPlugins()
+                }
+            },
+            settings ({ port }) {
+                if (this.electron) {
+                    const { ipcRenderer } = this.electron
+                    ipcRenderer.removeAllListeners('search-devices')
+                    ipcRenderer.send('search-devices', port)
+                    ipcRenderer.on('search-devices', (e, newDevice) => {
+                        const { addresses, ...device } = newDevice
+                        let devices = this.devices
+                        const since = Date.now()
+                        const keys = ['name', 'adapter', 'ip', 'appId', 'version']
+                        for (const addr of addresses) {
+                            const obj = {
+                                ...device,
+                                ...addr,
+                                since
+                            }
+                            devices = devices.filter(it => keys.some(k => it[k] !== obj[k]))
+                            devices.push(obj)
+                        }
+                        this.m_devices = orderBy(devices, keys)
+                    })
+                }
             }
         },
+        created () {
+            this.$http.defaults.baseURL = ''
+            setInterval(this.ticker, deviceTimeout)
+        },
         beforeMount () {
-            this.baseURL = localStorage.getItem('baseURL') || this.baseURL
-            this.settings = { ...default_settings, ...JSON.parse(localStorage.getItem('settings')) }
-            const current_page = parseInt(localStorage.getItem('current_page')) || 1
+            if (this.electron) {
+                this.electron.ipcRenderer.removeAllListeners('search-devices')
+            }
 
-            this.$http.get('/plugins').then(({ data }) => {
-                this.plugins = data
-            }).finally(() => {
-                this.current_page = Math.min(current_page, this.pages.length)
+            this.settings = defaultsDeep(JSON.parse(localStorage.getItem('settings')), default_settings)
+            this.host = JSON.parse(localStorage.getItem('host')) || {}
+
+            if (this.host.ip) {
+                this.$nextTick(() => {
+                    this.loadPlugins()
+                })
+            }
+        },
+        mounted () {
+            this.$nextTick(() => {
+                this.mounted = true
+            })
+            checkUpdate(this.version).then(data => {
+                this.release = data
             })
         },
         methods: {
+            open,
+            ticker () {
+                this.now = Date.now()
+            },
+            saveHost (host) {
+                this.$http.defaults.baseURL = `http://${host.ip}:${this.settings.port}`
+                localStorage.setItem('host', JSON.stringify(host))
+            },
+            loadPlugins () {
+                cancelRequests()
+                return this.$http.get('/plugins').then(({ data }) => {
+                    this.plugins = data
+                }).finally(() => {
+                    const current_page = parseInt(localStorage.getItem('current_page'))
+                    this.current_page = Math.min(Math.max(1, current_page), this.pages.length)
+                })
+            },
             setRequestsCount (count) {
                 this.requests = count
             }
@@ -136,17 +245,16 @@
     .version {
         font-size: 12px;
         opacity: 0.7;
-        margin-right: 10px;
     }
-    .badge {
-        font-size: 9px;
-        border-radius: 8px;
-        line-height: 16px;
-        min-width: 16px;
-        background-color: #aaaaaa88;
-        padding: 0 3px 0 2px;
+
+    .step-badge {
         position: relative;
         left: 8px;
+        padding: 0 3px 0 2px !important;
+    }
+
+    .strike {
+        text-decoration: line-through;
     }
 </style>
 
@@ -154,24 +262,9 @@
     .v-footer {
         background-color: var(--v-controls-base) !important;
         padding: 6px !important;
-    }
 
-    .ip-field {
-        width: 200px;
-
-        &.v-text-field--outlined {
-            fieldset {
-                border-width: 0 !important;
-            }
-
-            .v-input__slot {
-                min-height: 0 !important;
-                background-color: var(--v-controls-darken1);
-
-                input {
-                    opacity: 0.7;
-                }
-            }
+        .v-text-field {
+            width: 245px;
         }
     }
 </style>

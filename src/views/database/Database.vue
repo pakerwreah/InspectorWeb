@@ -115,16 +115,18 @@
             async getDatabases () {
                 const m_id = this.m_id
                 while (m_id === this.m_id) {
-                    try {
-                        this.progress = -1
-                        const r = await this.$http.get('/database/list')
-                        this.databases = r.data.databases
-                        this.currentdb = r.data.current
-                        await this.loadSchema(m_id)
-                        return
-                    } catch (error) {
-                        await sleep(3000)
+                    if (this.$http.defaults.baseURL) {
+                        try {
+                            this.progress = -1
+                            const r = await this.$http.get('/database/list')
+                            this.databases = r.data.databases
+                            this.currentdb = r.data.current
+                            await this.loadSchema(m_id)
+                            return
+                        } catch (error) {
+                        }
                     }
+                    await sleep(3000)
                 }
             },
             async selectDB (index) {
@@ -143,7 +145,7 @@
                             await sleep(500)
                         } else {
                             // start over
-                            this.getDatabases()
+                            this.getDatabases().catch(() => false)
                         }
                     }
                 }
