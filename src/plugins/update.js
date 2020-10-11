@@ -6,7 +6,7 @@ export default function (version) {
       const { html_url, name } = data
       if (name) {
         const new_version = name.replace(/[^\d.]/, '')
-        if (name !== new_version) {
+        if (version !== new_version) {
           const p_old = version.split('.')
           const p_new = new_version.split('.')
 

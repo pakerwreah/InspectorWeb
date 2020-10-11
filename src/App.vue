@@ -52,7 +52,7 @@
                     </v-flex>
                     <v-flex shrink align-self-center>
                         <v-fade-transition>
-                            <v-row v-show="current_page === 1" class="mr-2">
+                            <v-row v-show="current_page <= 1" class="mr-2">
                                 <span class="version">
                                     <span :class="{strike: release}">v{{ version }}</span>
                                     <span v-if="release" class="white--text ml-2">v{{ release.name }}</span>
@@ -218,7 +218,7 @@
             })
         },
         methods: {
-            open,
+            open: open.bind(window),
             ticker () {
                 this.now = Date.now()
             },
