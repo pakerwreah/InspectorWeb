@@ -218,7 +218,7 @@
             })
         },
         methods: {
-            open,
+            open: open.bind(window),
             ticker () {
                 this.now = Date.now()
             },
