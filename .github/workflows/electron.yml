@@ -1,0 +1,28 @@
+name: Electron CI
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          npm install
+          npm run electron:build -- -mwl
+
+      - name: Upload
+        working-directory: dist_electron
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag_name="${GITHUB_REF##*/}"
+          hub release edit -a $(find . -maxdepth 1 -type f -name "*.exe" -print) -m "" "$tag_name"
+          hub release edit -a $(find . -maxdepth 1 -type f -name "*.dmg" -print) -m "" "$tag_name"
+          hub release edit -a $(find . -maxdepth 1 -type f -name "*.snap" -print) -m "" "$tag_name"

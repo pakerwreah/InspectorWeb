@@ -2,7 +2,7 @@
     <splitpanes class="network-panel default-theme fill-height">
         <pane style="min-width: 250px" :size="100 - detail_size">
             <!--suppress HtmlUnknownAttribute -->
-            <div ref="scroll" class="network-container absolute-expand overflow-y-auto" v-chat-scroll="{always: false, smooth: true}">
+            <div ref="scroll" class="network-container absolute-expand overflow-y-auto">
                 <v-list v-if="session_list.length" dense>
                     <v-list-item-group v-model="selected" color="primary">
                         <div v-for="(s,i) in session_list" :key="i">
@@ -35,7 +35,7 @@
                     </v-list-item-group>
                 </v-list>
             </div>
-            <v-speed-dial open-on-hover bottom right fixed class="close_menu mr-2">
+            <v-speed-dial open-on-hover bottom right fixed class="close_menu">
                 <template v-slot:activator>
                     <v-tooltip left>
                         <template v-slot:activator="{ on }">
@@ -90,8 +90,9 @@
 </template>
 
 <script>
+    // noinspection ES6CheckImport
     import { Splitpanes, Pane } from 'splitpanes'
-    import { pickBy, sortBy } from 'lodash'
+    import { pickBy, sortBy, debounce } from 'lodash'
     import filesize from 'filesize'
     import db from './database'
     import { decode } from './utils'
@@ -103,7 +104,9 @@
         components: { Splitpanes, Pane, RequestViewer },
         props: {
             active: Boolean,
-            settings: Object
+            settings: Object,
+            ip: String,
+            port: String
         },
         data: () => ({
             session_list: [],
@@ -118,6 +121,15 @@
             ws_response_reconnect_timeout: null
         }),
         computed: {
+            host () {
+                return this.ip && this.port && `${this.ip}:${this.port}`
+            },
+            reconnect () {
+                return debounce(() => {
+                    this.disconnect()
+                    this.connect()
+                }, 1500)
+            },
             detail_size () {
                 return this.selected !== undefined ? 40 : 0
             },
@@ -144,12 +156,19 @@
             }
         },
         watch: {
+            host (host) {
+                if (host) {
+                    this.reconnect()
+                }
+            },
             active: {
                 handler (active) {
                     if (active) {
                         setTimeout(() => {
                             this.clear_visible = true
-                        }, 300)
+                            const div = this.$refs.scroll
+                            div.scrollTop = div.scrollHeight
+                        }, 500)
                         this.connect()
                     } else {
                         this.clear_visible = false
@@ -173,17 +192,19 @@
             },
             total_requests (count) {
                 this.$emit('requests', count)
+                this.stickyBottom()
             }
         },
         mounted () {
             this.nextItem = this.nextItem.bind(this)
             document.addEventListener('keydown', this.nextItem)
 
-            this.clear_visible = this.active
             this.getHistory().then(() => {
                 this.autoClearRequests()
-                const div = this.$refs.scroll
-                div.scrollTop = div.scrollHeight
+                this.$nextTick(() => {
+                    const div = this.$refs.scroll
+                    div.scrollTop = div.scrollHeight
+                })
             })
         },
         beforeDestroy () {
@@ -222,9 +243,6 @@
                     }
                 }
             },
-            host () {
-                return this.$http.defaults.baseURL.substr(7)
-            },
             newSession: () => ({
                 timestamp: new Date().getTime(),
                 requests: []
@@ -237,9 +255,13 @@
                     return
                 }
 
+                if (!this.host) {
+                    return
+                }
+
                 let initSession = true
 
-                const ws = this.ws_request = new WebSocket(`ws://${this.host()}/network/request`)
+                const ws = this.ws_request = new WebSocket(`ws://${this.host}/network/request`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -288,7 +310,11 @@
                     return
                 }
 
-                const ws = this.ws_response = new WebSocket(`ws://${this.host()}/network/response`)
+                if (!this.host) {
+                    return
+                }
+
+                const ws = this.ws_response = new WebSocket(`ws://${this.host}/network/response`)
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -336,7 +362,7 @@
                 this.requests = requests
             },
             autoClearRequests () {
-                const limit = 250
+                const limit = this.settings.limit
 
                 if (this.total_requests > limit) {
                     this.clearPreviousRequests()
@@ -396,6 +422,17 @@
                     return (value / 1000).toFixed(2) + ' s'
                 } else {
                     return value + ' ms'
+                }
+            },
+            stickyBottom () {
+                const el = this.$refs.scroll
+                if (el.scrollTop + el.clientHeight >= 0.98 * el.scrollHeight - 10) {
+                    this.$nextTick(() => {
+                        el.scroll({
+                            top: el.scrollHeight,
+                            behavior: 'smooth'
+                        })
+                    })
                 }
             },
             filesize,

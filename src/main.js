@@ -4,7 +4,7 @@ import vuetify from './plugins/vuetify'
 
 import './plugins/http'
 import './plugins/mixins'
-import './plugins/scroll'
+import './plugins/mask'
 import './plugins/highlight'
 import './plugins/directives'
 
