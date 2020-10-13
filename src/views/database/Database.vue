@@ -112,11 +112,15 @@
                 }
                 this.loading = false
             },
+            shouldRetry (error) {
+                return ![400, 500].includes(get(error, 'response.status', 500))
+            },
             async getDatabases () {
                 const m_id = this.m_id
                 while (m_id === this.m_id) {
                     if (this.$http.defaults.baseURL) {
                         try {
+                            this.error = null
                             this.progress = -1
                             const r = await this.$http.get('/database/list')
                             this.databases = r.data.databases
@@ -124,6 +128,11 @@
                             await this.loadSchema(m_id)
                             return
                         } catch (error) {
+                            if (!this.shouldRetry(error)) {
+                                this.schema = { tables: {} }
+                                this.error = get(error, 'response.data.msg')
+                                return
+                            }
                         }
                     }
                     await sleep(3000)
@@ -134,6 +143,7 @@
                 const max_tries = 3
                 for (let tries = 0; tries < max_tries && m_id === this.m_id; tries++) {
                     try {
+                        this.error = null
                         this.progress = -1
                         this.schema = {}
                         await this.$http.put('/database/current/' + index)
@@ -141,7 +151,11 @@
                         await this.loadSchema(m_id)
                         return
                     } catch (error) {
-                        if (tries < max_tries - 1) {
+                        if (!this.shouldRetry(error)) {
+                            this.schema = { tables: {} }
+                            this.error = get(error, 'response.data.msg')
+                            return
+                        } else if (tries < max_tries - 1) {
                             await sleep(500)
                         } else {
                             // start over
@@ -239,7 +253,7 @@
 
                         return
                     } catch (error) {
-                        if (tries < max_tries - 1) {
+                        if (tries < max_tries - 1 && this.shouldRetry(error)) {
                             await sleep(500)
                         } else {
                             throw error
