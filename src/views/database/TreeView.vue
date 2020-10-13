@@ -8,6 +8,7 @@
                   :append-icon="null"
                   :disabled="!items"
                   :readonly="databases.length === 1"
+                  :menu-props="{ offsetY: true }"
                   hide-details
                   hide-selected
                   filled solo dense flat />
