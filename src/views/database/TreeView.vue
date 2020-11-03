@@ -2,12 +2,14 @@
     <div class="tree-container">
         <v-select class="database-picker"
                   background-color="panel"
-                  v-model="selected"
-                  :items="databases"
+                  placeholder="No databases available"
                   prepend-inner-icon="mdi-database"
                   :append-icon="null"
+                  v-model="selected"
+                  :items="databases"
                   :disabled="!items"
                   :readonly="databases.length === 1"
+                  :menu-props="{ offsetY: true, disabled: databases.length < 1 }"
                   hide-details
                   hide-selected
                   filled solo dense flat />
