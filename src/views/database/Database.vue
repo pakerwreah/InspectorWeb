@@ -125,7 +125,11 @@
                             const r = await this.$http.get('/database/list')
                             this.databases = r.data.databases
                             this.currentdb = r.data.current
-                            await this.loadSchema(m_id)
+                            if (this.databases.length) {
+                                await this.loadSchema(m_id)
+                            } else {
+                                this.schema = { tables: {} }
+                            }
                             return
                         } catch (error) {
                             if (!this.shouldRetry(error)) {
@@ -139,6 +143,9 @@
                 }
             },
             async selectDB (index) {
+                if (index < 0) {
+                    return this.getDatabases().catch(() => false)
+                }
                 const m_id = this.m_id
                 const max_tries = 3
                 for (let tries = 0; tries < max_tries && m_id === this.m_id; tries++) {
