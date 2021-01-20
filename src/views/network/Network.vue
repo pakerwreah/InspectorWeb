@@ -1,92 +1,109 @@
 <template>
-    <splitpanes class="network-panel default-theme fill-height">
-        <pane style="min-width: 250px" :size="100 - detail_size">
-            <!--suppress HtmlUnknownAttribute -->
-            <div ref="scroll" class="network-container absolute-expand overflow-y-auto">
-                <v-list v-if="session_list.length" dense>
-                    <v-list-item-group v-model="selected" color="primary">
-                        <div v-for="(s,i) in session_list" :key="i">
-                            <div class="text-center text--text font-weight-bold pt-4">{{ formatTimestamp(s.timestamp, true) }}</div>
-                            <v-list-item class="request-item" two-line v-for="uid in s.requests" :key="uid">
-                                <v-list-item-content class="py-0">
-                                    <v-list-item-title class="pt-2">
-                                        <span class="method" :class="requests[uid].headers.method.toLowerCase()">{{ requests[uid].headers.method }}</span>
-                                        {{ requests[uid].headers.url.pathname }}
-                                    </v-list-item-title>
-                                    <v-list-item-subtitle class="origin pb-2">{{ requests[uid].headers.url.origin }}</v-list-item-subtitle>
-                                </v-list-item-content>
-                                <div class="mr-3">
-                                    <table>
-                                        <tr class="request-info">
-                                            <td class="request-status" :class="statusColor(requests[uid].status)">
-                                                <span v-if="requests[uid].status" class="font-weight-bold">{{ requests[uid].status }}</span>
-                                                <v-icon v-else class="request-loading">mdi-timelapse</v-icon>
-                                            </td>
-                                            <td class="request-timestamp font-weight-bold text-right">{{ formatTimestamp(requests[uid].timestamp) }}</td>
-                                        </tr>
-                                        <tr v-if="requests[uid].response" class="v-list-item__subtitle request-info">
-                                            <td>{{ formatDuration(requests[uid].response.timestamp - requests[uid].timestamp) }}</td>
-                                            <td class="text-right">{{ filesize(requests[uid].response.body.size) }}</td>
-                                        </tr>
-                                    </table>
+    <pane>
+        <v-layout wrap v-if="search_enabled">
+            <v-flex ml-3 mb-4 xs12 sm6 md3>
+                <v-text-field v-model="search_filter"
+                              hide-details
+                              prepend-inner-icon="mdi-magnify"
+                              single-line
+                              ref="search"
+                              clearable
+                              @click:clear="clear_search"
+                              placeholder="Search ..."></v-text-field>
+                <v-spacer></v-spacer>
+            </v-flex>
+        </v-layout>
+        <splitpanes class="network-panel default-theme fill-height">
+            <pane style="min-width: 250px" :size="100 - detail_size">
+                <!--suppress HtmlUnknownAttribute -->
+                <div ref="scroll" class="network-container absolute-expand overflow-y-auto">
+                    <v-list v-if="session_list.length" dense>
+                        <v-list-item-group v-model="selected" color="primary">
+                            <div v-for="(s,i) in session_list" :key="i">
+                                <div v-if="search_filter === null || search_filter.trim().length <= 0" class="text-center text--text font-weight-bold pt-4">{{ formatTimestamp(s.timestamp, true) }}</div>
+                                <div v-for="uid in search_requests(s)" :key="uid">
+                                    <v-list-item class="request-item" two-line>
+                                        <v-list-item-content class="py-0">
+                                            <v-list-item-title class="pt-2">
+                                                <span class="method" :class="requests[uid].headers.method.toLowerCase()">{{ requests[uid].headers.method }}</span>
+                                                {{ requests[uid].headers.url.pathname }}
+                                            </v-list-item-title>
+                                            <v-list-item-subtitle class="origin pb-2">{{ requests[uid].headers.url.origin }}</v-list-item-subtitle>
+                                        </v-list-item-content>
+                                        <div class="mr-3">
+                                            <table>
+                                                <tr class="request-info">
+                                                    <td class="request-status" :class="statusColor(requests[uid].status)">
+                                                        <span v-if="requests[uid].status" class="font-weight-bold">{{ requests[uid].status }}</span>
+                                                        <v-icon v-else class="request-loading">mdi-timelapse</v-icon>
+                                                    </td>
+                                                    <td class="request-timestamp font-weight-bold text-right">{{ formatTimestamp(requests[uid].timestamp) }}</td>
+                                                </tr>
+                                                <tr v-if="requests[uid].response" class="v-list-item__subtitle request-info">
+                                                    <td>{{ formatDuration(requests[uid].response.timestamp - requests[uid].timestamp) }}</td>
+                                                    <td class="text-right">{{ filesize(requests[uid].response.body.size) }}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </v-list-item>
                                 </div>
-                            </v-list-item>
-                        </div>
-                    </v-list-item-group>
-                </v-list>
-            </div>
-            <v-speed-dial open-on-hover bottom right fixed class="close_menu">
-                <template v-slot:activator>
+                            </div>
+                        </v-list-item-group>
+                    </v-list>
+                </div>
+                <v-speed-dial open-on-hover bottom right fixed class="close_menu">
+                    <template v-slot:activator>
+                        <v-tooltip left>
+                            <template v-slot:activator="{ on }">
+                                <v-fab-transition hide-on-leave>
+                                    <v-btn v-show="clear_visible"
+                                           @click.stop="clearEndedRequests"
+                                           v-on="on"
+                                           small fab
+                                           v-blur>
+                                        <v-icon>mdi-trash-can-outline</v-icon>
+                                    </v-btn>
+                                </v-fab-transition>
+                            </template>
+                            <span>Clear finished</span>
+                        </v-tooltip>
+                    </template>
                     <v-tooltip left>
                         <template v-slot:activator="{ on }">
-                            <v-fab-transition hide-on-leave>
-                                <v-btn v-show="clear_visible"
-                                       @click.stop="clearEndedRequests"
-                                       v-on="on"
-                                       small fab
-                                       v-blur>
-                                    <v-icon>mdi-trash-can-outline</v-icon>
-                                </v-btn>
-                            </v-fab-transition>
+                            <v-btn @click.stop="clearPreviousRequests"
+                                   v-on="on"
+                                   small fab
+                                   v-blur>
+                                <v-icon>mdi-upload-off</v-icon>
+                            </v-btn>
                         </template>
-                        <span>Clear finished</span>
+                        <span>Clear previous requests</span>
                     </v-tooltip>
-                </template>
-                <v-tooltip left>
-                    <template v-slot:activator="{ on }">
-                        <v-btn @click.stop="clearPreviousRequests"
-                               v-on="on"
-                               small fab
-                               v-blur>
-                            <v-icon>mdi-upload-off</v-icon>
-                        </v-btn>
-                    </template>
-                    <span>Clear previous requests</span>
-                </v-tooltip>
-                <v-tooltip left>
-                    <template v-slot:activator="{ on }">
-                        <v-btn @click.stop="clearAllRequests"
-                               v-on="on"
-                               small fab
-                               v-blur>
-                            <v-icon>mdi-skull-outline</v-icon>
-                        </v-btn>
-                    </template>
-                    <span>Clear all requests</span>
-                </v-tooltip>
-            </v-speed-dial>
-        </pane>
-        <pane :size="detail_size">
-            <splitpanes class="default-theme fill-height" horizontal>
-                <pane>
-                    <RequestViewer v-model="selected_request" :sort-params="settings.sort_params" />
-                </pane>
-                <pane>
-                    <RequestViewer v-model="selected_response" />
-                </pane>
-            </splitpanes>
-        </pane>
-    </splitpanes>
+                    <v-tooltip left>
+                        <template v-slot:activator="{ on }">
+                            <v-btn @click.stop="clearAllRequests"
+                                   v-on="on"
+                                   small fab
+                                   v-blur>
+                                <v-icon>mdi-skull-outline</v-icon>
+                            </v-btn>
+                        </template>
+                        <span>Clear all requests</span>
+                    </v-tooltip>
+                </v-speed-dial>
+            </pane>
+            <pane :size="detail_size">
+                <splitpanes class="default-theme fill-height" horizontal>
+                    <pane>
+                        <RequestViewer v-model="selected_request" :sort-params="settings.sort_params" />
+                    </pane>
+                    <pane>
+                        <RequestViewer v-model="selected_response" />
+                    </pane>
+                </splitpanes>
+            </pane>
+        </splitpanes>
+    </pane>
 </template>
 
 <script>
@@ -118,7 +135,9 @@
             /** @type WebSocket */
             ws_response: null,
             ws_request_reconnect_timeout: null,
-            ws_response_reconnect_timeout: null
+            ws_response_reconnect_timeout: null,
+            search_filter: '',
+            search_enabled: false
         }),
         computed: {
             host () {
@@ -153,6 +172,9 @@
             },
             total_requests () {
                 return Object.keys(this.requests).length
+            },
+            search_requests () {
+                return items => items.requests.filter(item => new RegExp(this.search_filter === null ? '' : this.search_filter.trim(), 'i').test(this.requests[item].headers.url.pathname))
             }
         },
         watch: {
@@ -194,6 +216,12 @@
                 this.$emit('requests', count)
                 this.stickyBottom()
             }
+        },
+        created () {
+            window.addEventListener('keydown', key => this.show_hide(key))
+        },
+        destroyed () {
+            window.removeEventListener('keydown', key => this.show_hide(key))
         },
         mounted () {
             this.nextItem = this.nextItem.bind(this)
@@ -434,6 +462,15 @@
                         })
                     })
                 }
+            },
+            show_hide (key) {
+                if (key.shiftKey) {
+                    this.search_enabled = !this.search_enabled
+                    this.$nextTick(() => this.$refs.search.focus())
+                }
+            },
+            clear_search () {
+                this.search_filter = ''
             },
             filesize,
             formatTimestamp
