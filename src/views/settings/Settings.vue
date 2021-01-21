@@ -112,15 +112,10 @@
             }
         },
         mounted () {
-            if (darkModeMatcher) {
-                this.darkModeObserver = this.darkModeObserver.bind(this)
-                darkModeMatcher.addEventListener('change', this.darkModeObserver)
-            }
+            darkModeMatcher?.addEventListener('change', this.darkModeObserver)
         },
         beforeDestroy () {
-            if (darkModeMatcher) {
-                darkModeMatcher.removeEventListener('change', this.darkModeObserver)
-            }
+            darkModeMatcher?.removeEventListener('change', this.darkModeObserver)
         },
         methods: {
             darkModeObserver (e) {
