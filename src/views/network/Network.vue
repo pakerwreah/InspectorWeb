@@ -1,28 +1,28 @@
 <template>
-    <pane>
-        <v-layout wrap v-if="search_enabled">
-            <v-flex ml-3 mb-4 xs12 sm6 md3>
-                <v-text-field v-model="search_filter"
-                              hide-details
-                              prepend-inner-icon="mdi-magnify"
-                              single-line
-                              ref="search"
-                              clearable
-                              @click:clear="clear_search"
-                              placeholder="Search ..."></v-text-field>
-                <v-spacer></v-spacer>
-            </v-flex>
-        </v-layout>
-        <splitpanes class="network-panel default-theme fill-height">
-            <pane style="min-width: 250px" :size="100 - detail_size">
+    <splitpanes class="network-panel default-theme fill-height">
+        <pane style="min-width: 250px" :size="100 - detail_size">
+            <div ref="panel" tabindex="-1">
+                <v-layout class="network_search" v-show="search_enabled">
+                    <v-flex>
+                        <v-text-field class="network_search_field" v-model="search_filter"
+                                      hide-details
+                                      prepend-inner-icon="mdi-magnify"
+                                      single-line
+                                      ref="search"
+                                      clearable
+                                      @click:clear="clearSearch"
+                                      placeholder="Search ..."></v-text-field>
+                        <v-spacer></v-spacer>
+                    </v-flex>
+                </v-layout>
                 <!--suppress HtmlUnknownAttribute -->
                 <div ref="scroll" class="network-container absolute-expand overflow-y-auto">
                     <v-list v-if="session_list.length" dense>
                         <v-list-item-group v-model="selected" color="primary">
                             <div v-for="(s,i) in session_list" :key="i">
                                 <div v-if="search_filter === null || search_filter.trim().length <= 0" class="text-center text--text font-weight-bold pt-4">{{ formatTimestamp(s.timestamp, true) }}</div>
-                                <div v-for="uid in search_requests(s)" :key="uid">
-                                    <v-list-item class="request-item" two-line>
+                                <div v-for="uid in s.requests" :key="uid">
+                                    <v-list-item v-if="search_requests(requests[uid])" class="request-item" two-line>
                                         <v-list-item-content class="py-0">
                                             <v-list-item-title class="pt-2">
                                                 <span class="method" :class="requests[uid].headers.method.toLowerCase()">{{ requests[uid].headers.method }}</span>
@@ -91,19 +91,19 @@
                         <span>Clear all requests</span>
                     </v-tooltip>
                 </v-speed-dial>
-            </pane>
-            <pane :size="detail_size">
-                <splitpanes class="default-theme fill-height" horizontal>
-                    <pane>
-                        <RequestViewer v-model="selected_request" :sort-params="settings.sort_params" />
-                    </pane>
-                    <pane>
-                        <RequestViewer v-model="selected_response" />
-                    </pane>
-                </splitpanes>
-            </pane>
-        </splitpanes>
-    </pane>
+            </div>
+        </pane>
+        <pane :size="detail_size">
+            <splitpanes class="default-theme fill-height" horizontal>
+                <pane>
+                    <RequestViewer v-model="selected_request" :sort-params="settings.sort_params" />
+                </pane>
+                <pane>
+                    <RequestViewer v-model="selected_response" />
+                </pane>
+            </splitpanes>
+        </pane>
+    </splitpanes>
 </template>
 
 <script>
@@ -174,7 +174,8 @@
                 return Object.keys(this.requests).length
             },
             search_requests () {
-                return items => items.requests.filter(item => new RegExp(this.search_filter === null ? '' : this.search_filter.trim(), 'i').test(this.requests[item].headers.url.pathname))
+                const term = this.search_filter && this.search_filter.trim().toLowerCase()
+                return item => !term || item.headers.url.pathname.toLowerCase().includes(term)
             }
         },
         watch: {
@@ -217,15 +218,10 @@
                 this.stickyBottom()
             }
         },
-        created () {
-            window.addEventListener('keydown', key => this.show_hide(key))
-        },
-        destroyed () {
-            window.removeEventListener('keydown', key => this.show_hide(key))
-        },
         mounted () {
             this.nextItem = this.nextItem.bind(this)
             document.addEventListener('keydown', this.nextItem)
+            this.$refs.panel.addEventListener('keydown', this.toggleSearch)
 
             this.getHistory().then(() => {
                 this.autoClearRequests()
@@ -463,13 +459,23 @@
                     })
                 }
             },
-            show_hide (key) {
-                if (key.shiftKey) {
-                    this.search_enabled = !this.search_enabled
-                    this.$nextTick(() => this.$refs.search.focus())
+            toggleSearch (key) {
+                if (this.active) {
+                    if (key.ctrlKey && key.keyCode === 70) {
+                        key.preventDefault()
+                        this.search_enabled = !this.search_enabled
+                    } else if (key.keyCode === 27) {
+                        this.search_enabled = false
+                        this.clearSearch()
+                    }
+                    if (this.search_enabled) {
+                        this.$nextTick(() => this.$refs.search.focus())
+                    } else {
+                        this.$nextTick(() => this.$refs.panel.focus())
+                    }
                 }
             },
-            clear_search () {
+            clearSearch () {
                 this.search_filter = ''
             },
             filesize,
@@ -483,7 +489,32 @@
         .close_menu .v-speed-dial__list {
             padding-bottom: 8px;
         }
+        .network_search {
+            background-color: var(--v-controls-darken1);
+            border: 1px solid #cbcbcb;
+            border-top: 0 none;
+            overflow: hidden;
+            margin: 0;
+            padding: 0 6px 8px 6px;
+            position: absolute;
+            top: 0;
+            display: inline-block;
+            z-index: 99;
+            white-space: normal;
+            right: 0;
+        }
+        .network_search_field {
+            font-size: inherit;
+            margin: 0;
+            line-height: inherit;
+            padding: 0 6px;
+            min-width: 17em;
+            vertical-align: top;
+            min-height: 1.8em;
+            box-sizing: content-box;
+        }
     }
+
 </style>
 
 <style scoped lang="scss">
