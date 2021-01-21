@@ -1,97 +1,95 @@
 <template>
     <splitpanes class="network-panel default-theme fill-height">
         <pane style="min-width: 250px" :size="100 - detail_size">
-            <div ref="panel" tabindex="-1">
-                <v-layout class="network_search" v-show="search_enabled">
-                    <v-flex>
-                        <v-text-field class="network_search_field" v-model="search_filter"
-                                      hide-details
-                                      prepend-inner-icon="mdi-magnify"
-                                      single-line
-                                      ref="search"
-                                      clearable
-                                      @click:clear="clearSearch"
-                                      placeholder="Search ..."></v-text-field>
-                        <v-spacer></v-spacer>
-                    </v-flex>
-                </v-layout>
-                <!--suppress HtmlUnknownAttribute -->
-                <div ref="scroll" class="network-container absolute-expand overflow-y-auto">
-                    <v-list v-if="session_list.length" dense>
-                        <v-list-item-group v-model="selected" color="primary">
-                            <div v-for="(s,i) in session_list" :key="i">
-                                <div v-if="search_filter === null || search_filter.trim().length <= 0" class="text-center text--text font-weight-bold pt-4">{{ formatTimestamp(s.timestamp, true) }}</div>
-                                <div v-for="uid in s.requests" :key="uid">
-                                    <v-list-item v-if="search_requests(requests[uid])" class="request-item" two-line>
-                                        <v-list-item-content class="py-0">
-                                            <v-list-item-title class="pt-2">
-                                                <span class="method" :class="requests[uid].headers.method.toLowerCase()">{{ requests[uid].headers.method }}</span>
-                                                {{ requests[uid].headers.url.pathname }}
-                                            </v-list-item-title>
-                                            <v-list-item-subtitle class="origin pb-2">{{ requests[uid].headers.url.origin }}</v-list-item-subtitle>
-                                        </v-list-item-content>
-                                        <div class="mr-3">
-                                            <table>
-                                                <tr class="request-info">
-                                                    <td class="request-status" :class="statusColor(requests[uid].status)">
-                                                        <span v-if="requests[uid].status" class="font-weight-bold">{{ requests[uid].status }}</span>
-                                                        <v-icon v-else class="request-loading">mdi-timelapse</v-icon>
-                                                    </td>
-                                                    <td class="request-timestamp font-weight-bold text-right">{{ formatTimestamp(requests[uid].timestamp) }}</td>
-                                                </tr>
-                                                <tr v-if="requests[uid].response" class="v-list-item__subtitle request-info">
-                                                    <td>{{ formatDuration(requests[uid].response.timestamp - requests[uid].timestamp) }}</td>
-                                                    <td class="text-right">{{ filesize(requests[uid].response.body.size) }}</td>
-                                                </tr>
-                                            </table>
-                                        </div>
-                                    </v-list-item>
-                                </div>
+            <!--suppress HtmlUnknownAttribute -->
+            <div ref="scroll" class="network-container absolute-expand overflow-y-auto">
+                <v-list v-if="session_list.length" dense>
+                    <v-list-item-group v-model="selected" color="primary">
+                        <div v-for="(s,i) in session_list" :key="i">
+                            <div v-if="search_filter === null || search_filter.trim().length <= 0" class="text-center text--text font-weight-bold pt-4">{{ formatTimestamp(s.timestamp, true) }}</div>
+                            <div v-for="uid in s.requests" :key="uid">
+                                <v-list-item v-if="search_requests(requests[uid])" class="request-item" two-line>
+                                    <v-list-item-content class="py-0">
+                                        <v-list-item-title class="pt-2">
+                                            <span class="method" :class="requests[uid].headers.method.toLowerCase()">{{ requests[uid].headers.method }}</span>
+                                            {{ requests[uid].headers.url.pathname }}
+                                        </v-list-item-title>
+                                        <v-list-item-subtitle class="origin pb-2">{{ requests[uid].headers.url.origin }}</v-list-item-subtitle>
+                                    </v-list-item-content>
+                                    <div class="mr-3">
+                                        <table>
+                                            <tr class="request-info">
+                                                <td class="request-status" :class="statusColor(requests[uid].status)">
+                                                    <span v-if="requests[uid].status" class="font-weight-bold">{{ requests[uid].status }}</span>
+                                                    <v-icon v-else class="request-loading">mdi-timelapse</v-icon>
+                                                </td>
+                                                <td class="request-timestamp font-weight-bold text-right">{{ formatTimestamp(requests[uid].timestamp) }}</td>
+                                            </tr>
+                                            <tr v-if="requests[uid].response" class="v-list-item__subtitle request-info">
+                                                <td>{{ formatDuration(requests[uid].response.timestamp - requests[uid].timestamp) }}</td>
+                                                <td class="text-right">{{ filesize(requests[uid].response.body.size) }}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </v-list-item>
                             </div>
-                        </v-list-item-group>
-                    </v-list>
-                </div>
-                <v-speed-dial open-on-hover bottom right fixed class="close_menu">
-                    <template v-slot:activator>
-                        <v-tooltip left>
-                            <template v-slot:activator="{ on }">
-                                <v-fab-transition hide-on-leave>
-                                    <v-btn v-show="clear_visible"
-                                           @click.stop="clearEndedRequests"
-                                           v-on="on"
-                                           small fab
-                                           v-blur>
-                                        <v-icon>mdi-trash-can-outline</v-icon>
-                                    </v-btn>
-                                </v-fab-transition>
-                            </template>
-                            <span>Clear finished</span>
-                        </v-tooltip>
-                    </template>
-                    <v-tooltip left>
-                        <template v-slot:activator="{ on }">
-                            <v-btn @click.stop="clearPreviousRequests"
-                                   v-on="on"
-                                   small fab
-                                   v-blur>
-                                <v-icon>mdi-upload-off</v-icon>
-                            </v-btn>
-                        </template>
-                        <span>Clear previous requests</span>
-                    </v-tooltip>
-                    <v-tooltip left>
-                        <template v-slot:activator="{ on }">
-                            <v-btn @click.stop="clearAllRequests"
-                                   v-on="on"
-                                   small fab
-                                   v-blur>
-                                <v-icon>mdi-skull-outline</v-icon>
-                            </v-btn>
-                        </template>
-                        <span>Clear all requests</span>
-                    </v-tooltip>
-                </v-speed-dial>
+                        </div>
+                    </v-list-item-group>
+                </v-list>
             </div>
+            <v-speed-dial open-on-hover bottom right fixed class="close_menu">
+                <template v-slot:activator>
+                    <v-tooltip left>
+                        <template v-slot:activator="{ on }">
+                            <v-fab-transition hide-on-leave>
+                                <v-btn v-show="clear_visible"
+                                       @click.stop="clearEndedRequests"
+                                       v-on="on"
+                                       small fab
+                                       v-blur>
+                                    <v-icon>mdi-trash-can-outline</v-icon>
+                                </v-btn>
+                            </v-fab-transition>
+                        </template>
+                        <span>Clear finished</span>
+                    </v-tooltip>
+                </template>
+                <v-tooltip left>
+                    <template v-slot:activator="{ on }">
+                        <v-btn @click.stop="clearPreviousRequests"
+                               v-on="on"
+                               small fab
+                               v-blur>
+                            <v-icon>mdi-upload-off</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Clear previous requests</span>
+                </v-tooltip>
+                <v-tooltip left>
+                    <template v-slot:activator="{ on }">
+                        <v-btn @click.stop="clearAllRequests"
+                               v-on="on"
+                               small fab
+                               v-blur>
+                            <v-icon>mdi-skull-outline</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Clear all requests</span>
+                </v-tooltip>
+            </v-speed-dial>
+            <v-layout class="network_search" v-show="search_enabled">
+                <v-flex>
+                    <v-text-field ref="search"
+                                  class="network_search_field" v-model="search_filter"
+                                  hide-details
+                                  prepend-inner-icon="mdi-magnify"
+                                  single-line
+                                  clearable
+                                  @click:clear="clearSearch"
+                                  placeholder="Search..."></v-text-field>
+                    <v-spacer></v-spacer>
+                </v-flex>
+            </v-layout>
         </pane>
         <pane :size="detail_size">
             <splitpanes class="default-theme fill-height" horizontal>
@@ -221,7 +219,7 @@
         mounted () {
             this.nextItem = this.nextItem.bind(this)
             document.addEventListener('keydown', this.nextItem)
-            this.$refs.panel.addEventListener('keydown', this.toggleSearch)
+            document.addEventListener('keydown', this.toggleSearch)
 
             this.getHistory().then(() => {
                 this.autoClearRequests()
@@ -461,17 +459,13 @@
             },
             toggleSearch (key) {
                 if (this.active) {
-                    if (key.ctrlKey && key.keyCode === 70) {
+                    if ((key.ctrlKey || key.metaKey) && key.keyCode === 70) {
                         key.preventDefault()
-                        this.search_enabled = !this.search_enabled
+                        this.search_enabled = true
+                        this.$nextTick(() => this.$refs.search.focus())
                     } else if (key.keyCode === 27) {
                         this.search_enabled = false
                         this.clearSearch()
-                    }
-                    if (this.search_enabled) {
-                        this.$nextTick(() => this.$refs.search.focus())
-                    } else {
-                        this.$nextTick(() => this.$refs.panel.focus())
                     }
                 }
             },
@@ -488,30 +482,6 @@
     .network-panel {
         .close_menu .v-speed-dial__list {
             padding-bottom: 8px;
-        }
-        .network_search {
-            background-color: var(--v-controls-darken1);
-            border: 1px solid #cbcbcb;
-            border-top: 0 none;
-            overflow: hidden;
-            margin: 0;
-            padding: 0 6px 8px 6px;
-            position: absolute;
-            top: 0;
-            display: inline-block;
-            z-index: 99;
-            white-space: normal;
-            right: 0;
-        }
-        .network_search_field {
-            font-size: inherit;
-            margin: 0;
-            line-height: inherit;
-            padding: 0 6px;
-            min-width: 17em;
-            vertical-align: top;
-            min-height: 1.8em;
-            box-sizing: content-box;
         }
     }
 
@@ -571,6 +541,24 @@
             }
 
             color: #969696;
+        }
+    }
+    .theme--light .network_search {
+        background-color: var(--v-controls-base);
+    }
+
+    .theme--dark .network_search {
+        background-color: var(--v-controls-darken1);
+    }
+    .network_search {
+        padding: 0 6px 8px 6px;
+        position: absolute;
+        top: 0;
+        right: 0;
+
+        .network_search_field {
+            padding: 0;
+            width: 17em;
         }
     }
 </style>
