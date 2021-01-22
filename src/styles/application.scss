@@ -132,7 +132,7 @@ html {
     .theme--dark {
         .splitpanes.default-theme {
             .splitpanes__pane {
-                background-color: #303030;
+                background-color: var(--v-panel-base);
             }
 
             .splitpanes__splitter {
