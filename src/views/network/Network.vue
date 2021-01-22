@@ -4,39 +4,39 @@
             <div ref="scroll" class="network-container absolute-expand overflow-y-auto" :class="{'pt-10': is_searching}">
                 <v-list v-if="session_list.length" dense>
                     <v-list-item-group v-model="selected" color="primary">
-                        <div v-for="(s,i) in session_list" :key="i">
+                        <div v-for="(session,i) in session_list" :key="i">
                             <div v-if="!is_searching" class="text-center text--text font-weight-bold pt-4">
-                                {{ formatTimestamp(s.timestamp, true) }}
+                                {{ formatTimestamp(session.timestamp, true) }}
                             </div>
-                            <template v-for="uid in s.requests">
-                                <v-list-item :key="uid" v-if="search_requests(requests[uid].headers.url)" class="request-item" two-line>
+                            <template v-for="request in session.requests.map(uid => requests[uid])">
+                                <v-list-item :key="request.uid" v-show="requests_visibility[request.uid]" class="request-item" two-line>
                                     <v-list-item-content class="py-0">
                                         <v-list-item-title class="pt-2">
-                                            <span class="method" :class="requests[uid].headers.method.toLowerCase()">
-                                                {{ requests[uid].headers.method }}
+                                            <span class="method" :class="request.headers.method.toLowerCase()">
+                                                {{ request.headers.method }}
                                             </span>
-                                            {{ requests[uid].headers.url.pathname }}
+                                            {{ request.headers.url.pathname }}
                                         </v-list-item-title>
                                         <v-list-item-subtitle class="origin pb-2">
-                                            {{ requests[uid].headers.url.origin }}
+                                            {{ request.headers.url.origin }}
                                         </v-list-item-subtitle>
                                     </v-list-item-content>
                                     <div class="mr-3">
                                         <table>
                                             <tr class="request-info">
-                                                <td class="request-status" :class="statusColor(requests[uid].status)">
-                                                    <span v-if="requests[uid].status" class="font-weight-bold">
-                                                        {{ requests[uid].status }}
+                                                <td class="request-status" :class="statusColor(request.status)">
+                                                    <span v-if="request.status" class="font-weight-bold">
+                                                        {{ request.status }}
                                                     </span>
                                                     <v-icon v-else class="request-loading">mdi-timelapse</v-icon>
                                                 </td>
                                                 <td class="request-timestamp font-weight-bold text-right">
-                                                    {{ formatTimestamp(requests[uid].timestamp) }}
+                                                    {{ formatTimestamp(request.timestamp) }}
                                                 </td>
                                             </tr>
-                                            <tr v-if="requests[uid].response" class="v-list-item__subtitle request-info">
-                                                <td>{{ formatDuration(requests[uid].response.timestamp - requests[uid].timestamp) }}</td>
-                                                <td class="text-right">{{ filesize(requests[uid].response.body.size) }}</td>
+                                            <tr v-if="request.response" class="v-list-item__subtitle request-info">
+                                                <td>{{ formatDuration(request.response.timestamp - request.timestamp) }}</td>
+                                                <td class="text-right">{{ filesize(request.response.body.size) }}</td>
                                             </tr>
                                         </table>
                                     </div>
@@ -181,10 +181,20 @@
             is_searching () {
                 return this.search_filter?.trim().length > 0
             },
-            search_requests () {
+            requests_visibility () {
                 const term = this.search_filter?.trim().toLowerCase()
                 const props = ({ pathname, origin }) => [pathname, origin].map(p => p.toLowerCase())
-                return item => !term || props(item).findIndex(p => p.includes(term)) >= 0
+                const search = item => !term || props(item).findIndex(p => p.includes(term)) >= 0
+
+                const requests = this.session_list.flatMap(({ requests }) => requests.map(uid => this.requests[uid]))
+
+                const items = {}
+
+                for (const request of requests) {
+                    items[request.uid] = search(request.headers.url)
+                }
+
+                return items
             }
         },
         watch: {
@@ -224,19 +234,6 @@
             total_requests (count) {
                 this.$emit('requests', count)
                 this.stickyBottom()
-            },
-            search_filter () {
-                this.selected = undefined
-
-                if (!this.is_searching) {
-                    // reset list because there's a bug where the selection gets a little crazy
-                    // https://github.com/vuetifyjs/vuetify/issues/11405
-                    const backup = this.session_list
-                    this.session_list = []
-                    this.$nextTick(() => {
-                        this.session_list = backup
-                    })
-                }
             }
         },
         mounted () {
@@ -279,12 +276,26 @@
                     ws.close()
                 }
             },
+            nextVisible (selected, inc) {
+                // ES2015: insertion order is preserved, except in the case of integers keys
+                const values = Object.values(this.requests_visibility)
+                for (let i = selected + inc; i >= 0 && i < values.length; i += inc) {
+                    if (values[i]) {
+                        return i
+                    }
+                }
+            },
             nextItem (e) {
-                if (this.active && this.selected !== undefined && !this.is_searching) {
-                    if (e.keyCode === 38 && this.selected > 0) {
-                        this.selected--
-                    } else if (e.keyCode === 40 && this.selected < Object.keys(this.requests).length - 1) {
-                        this.selected++
+                if (this.active) {
+                    let next
+                    if (e.keyCode === 38) {
+                        next = this.nextVisible(this.selected ?? Object.keys(this.requests).length, -1)
+                    } else if (e.keyCode === 40) {
+                        next = this.nextVisible(this.selected ?? -1, +1)
+                    }
+                    if (next >= 0) {
+                        e.preventDefault()
+                        this.selected = next
                     }
                 }
             },
@@ -491,6 +502,7 @@
                         this.search_enabled = true
                         this.$nextTick(() => {
                             this.$refs.search.focus()
+                            this.$refs.search.$el.querySelector('input').select()
                         })
                     } else if (key.keyCode === 27) {
                         this.search_enabled = false
