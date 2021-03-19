@@ -1,6 +1,6 @@
 {
   "name": "inspector",
-  "version": "1.7.3",
+  "version": "1.7.4",
   "author": {
     "name": "Carlos Enumo",
     "email": "paker_wreah@hotmail.com",
@@ -24,7 +24,7 @@
     "fuzzysort": "^1.1.4",
     "highlight.js": "^10.1.2",
     "lodash": "^4.17.20",
-    "splitpanes": "^2.2.1",
+    "splitpanes": "^2.3.6",
     "tiny-save-as": "^1.0.0",
     "v-mask": "^2.2.3",
     "vue": "^2.6.11",
