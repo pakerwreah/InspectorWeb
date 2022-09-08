@@ -122,7 +122,7 @@
         }),
         computed: {
             electron () {
-                return window.require && window.require('electron')
+                return window.electron
             },
             version () {
                 return process.env.VERSION

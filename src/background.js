@@ -1,10 +1,9 @@
-'use strict'
-
 import { app, protocol, BrowserWindow, ipcMain, shell } from 'electron'
 import windowStateKeeper from 'electron-window-state'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
 import searchDevices from '@/native/device-scanner'
+import path from 'path'
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -33,8 +32,10 @@ function createWindow () {
     minHeight: 500,
     show: false,
     webPreferences: {
-      nodeIntegration: true,
-      spellcheck: false
+      spellcheck: false,
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
     }
   }
 
@@ -78,9 +79,9 @@ function createWindow () {
     }
   })
 
-  win.webContents.on('new-window', (event, url) => {
-    event.preventDefault()
+  win.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
+    return { action: 'deny' }
   })
 }
 
