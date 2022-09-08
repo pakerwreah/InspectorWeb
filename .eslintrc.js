@@ -7,6 +7,7 @@ module.exports = {
     'plugin:vue/essential',
     '@vue/standard'
   ],
+  parser: '@babel/eslint-parser',
   plugins: [
     'vuetify',
     'only-warn'
@@ -26,11 +27,9 @@ module.exports = {
     'vue/html-end-tags': 'error',
     'vue/html-closing-bracket-spacing': 'error',
     'vue/mustache-interpolation-spacing': 'error',
-    'vue/name-property-casing': 'error',
+    'vue/component-definition-name-casing': 'error',
     'vue/prop-name-casing': 'error',
-    'vue/attribute-hyphenation': 'error',
-    'vuetify/grid-unknown-attributes': 'warn',
-    'vuetify/no-deprecated-classes': 'warn'
+    'vue/attribute-hyphenation': 'error'
   },
   overrides: [
     {
@@ -40,9 +39,6 @@ module.exports = {
       }
     }
   ],
-  parserOptions: {
-    parser: 'babel-eslint'
-  },
   globals: {
     '_': false
   }

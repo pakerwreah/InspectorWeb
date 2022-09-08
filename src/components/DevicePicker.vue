@@ -79,8 +79,8 @@
         methods: {
             deviceIcon (type) {
                 return {
-                    ios: 'mdi-cellphone-iphone',
-                    android: 'mdi-cellphone-android'
+                    ios: 'mdi-apple',
+                    android: 'mdi-android'
                 }[type] || 'mdi-laptop'
             }
         }
