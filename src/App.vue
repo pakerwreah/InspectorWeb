@@ -255,6 +255,7 @@
         }
     }
 </script>
+
 <style scoped lang='scss'>
     .version {
         font-size: 12px;

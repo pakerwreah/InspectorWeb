@@ -8,6 +8,7 @@ import './plugins/mask'
 import './plugins/highlight'
 import './plugins/directives'
 
+import '@mdi/font/css/materialdesignicons.min.css'
 import 'splitpanes/dist/splitpanes.css'
 import './styles/application.scss'
 

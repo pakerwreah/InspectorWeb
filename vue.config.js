@@ -32,7 +32,11 @@ module.exports = {
       // Provide an array of files that, when changed, will recompile the main process and restart Electron
       // Your main process file will be added by default
       mainProcessWatch: ['src/native/*'],
-      preload: 'src/preload.js'
+      // Script for exposing native features while keeping isolation
+      preload: 'src/preload.js',
+      // Fix bug where fonts are requested with incorrect path
+      // https://github.com/nklayman/vue-cli-plugin-electron-builder/issues/1647#issuecomment-1019400838
+      customFileProtocol: './'
     }
   }
 }
