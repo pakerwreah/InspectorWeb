@@ -47,8 +47,17 @@
             <v-footer app>
                 <v-layout>
                     <v-flex>
-                        <DevicePicker v-if="electron" v-model="host" :devices="devices" />
-                        <IPTextField v-else v-model="host" />
+                        <v-layout>
+                            <v-flex shrink>
+                                <DevicePicker v-if="show_device_picker" v-model="host" :devices="devices"/>
+                                <IPTextField v-else v-model="host"/>
+                            </v-flex>
+                            <v-flex shrink>
+                                <v-btn v-if="electron" style="margin: -5px 0" fab x-small icon @click="show_device_picker = !show_device_picker">
+                                    <v-icon v-text="show_device_picker ? 'mdi-pencil' : 'mdi-radar'"/>
+                                </v-btn>
+                            </v-flex>
+                        </v-layout>
                     </v-flex>
                     <v-flex shrink align-self-center>
                         <v-fade-transition>
@@ -118,7 +127,8 @@
             host: { ip: '' },
             m_devices: [],
             now: Date.now(),
-            release: undefined
+            release: undefined,
+            show_device_picker: false
         }),
         computed: {
             electron () {
@@ -147,6 +157,9 @@
         watch: {
             current_page (page) {
                 localStorage.setItem('current_page', page)
+            },
+            show_device_picker (show) {
+                localStorage.setItem('show_device_picker', show)
             },
             settings_popup (open) {
                 if (!open) {
@@ -202,6 +215,7 @@
 
             this.settings = defaultsDeep(JSON.parse(localStorage.getItem('settings')), default_settings)
             this.host = JSON.parse(localStorage.getItem('host')) || {}
+            this.show_device_picker = JSON.parse(localStorage.getItem('show_device_picker') || !!this.electron)
 
             if (this.host.ip) {
                 this.$nextTick(() => {
