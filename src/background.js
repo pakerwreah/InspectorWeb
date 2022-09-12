@@ -79,9 +79,9 @@ function createWindow () {
     }
   })
 
-  win.setWindowOpenHandler(({ url }) => {
+  win.webContents.on('new-window', (event, url) => {
+    event.preventDefault()
     shell.openExternal(url)
-    return { action: 'deny' }
   })
 }
 
