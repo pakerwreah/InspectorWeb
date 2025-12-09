@@ -1,21 +1,31 @@
 <template>
-    <v-dialog v-model="open" content-class="sql-history-popup">
-        <v-card height="100%" class="sql-history-container">
+    <v-dialog v-model="open" content-class="sql-history-popup" attach>
+        <v-card class="sql-history-container">
             <v-card-title class="pa-1">
                 <v-layout class="text-center">
                     <v-col>SQL History</v-col>
+                    <div class="position-absolute right-0 mr-2 d-flex align-center fill-height">
+                        <v-btn @click="open = false" density="comfortable" icon>
+                            <v-icon color="neutral">mdi-close</v-icon>
+                        </v-btn>
+                    </div>
                 </v-layout>
-                <v-btn color="neutral" @click="open = false" small icon absolute right>
-                    <v-icon small>mdi-close</v-icon>
-                </v-btn>
             </v-card-title>
             <v-card-text class="pa-0 flex relative">
                 <splitpanes class="default-theme absolute-expand">
                     <pane style="min-width: 250px" size="40">
-                        <v-layout column class="fill-height">
-                            <v-btn-toggle v-model="favorites" mandatory borderless color="accent">
-                                <v-btn :value="false" small class="flex flex-basis-0">All</v-btn>
-                                <v-btn :value="true" small class="flex flex-basis-0">Favorites</v-btn>
+                        <v-col>
+                            <v-btn-toggle
+                                density="compact"
+                                class="w-100"
+                                v-model="favorites"
+                                mandatory
+                                color="accent"
+                                variant="outlined"
+                                rounded="xl"
+                            >
+                                <v-btn :value="false" class="flex-fill">All</v-btn>
+                                <v-btn :value="true" class="flex-fill">Favorites</v-btn>
                             </v-btn-toggle>
                             <v-list class="sql-history-list pt-0 overflow-y-auto fill-height" dense>
                                 <v-list-group v-model="selected" mandatory color="primary">
@@ -54,7 +64,7 @@
                                     </template>
                                 </v-list-group>
                             </v-list>
-                        </v-layout>
+                        </v-col>
                     </pane>
                     <pane>
                         <div class="fill-height overflow-y-auto px-3 pb-5">
@@ -72,18 +82,13 @@
     </v-dialog>
 </template>
 
-<script setup lang="ts">
-    import { useGoTo } from 'vuetify'
-
-    const goTo = useGoTo()
-</script>
-
 <script lang="ts">
     import { Splitpanes, Pane } from 'splitpanes'
     import { formatTimestamp } from '@/utils'
     import { highlightjs } from '@/plugins/highlight'
     import theme from '@/mixins/theme'
     import { defineComponent } from 'vue'
+    import { useGoTo } from 'vuetify/framework'
 
     type SQLHistoryItem = {
         sql: string
@@ -98,7 +103,11 @@
         components: { Splitpanes, Pane, highlightjs },
         mixins: [theme],
         props: {
-            value: Boolean,
+            modelValue: Boolean,
+        },
+        setup() {
+            const goTo = useGoTo()
+            return { goTo }
         },
         data: () => ({
             favorites: false,
@@ -109,10 +118,10 @@
         computed: {
             open: {
                 get() {
-                    return this.value
+                    return this.modelValue
                 },
                 set(value: boolean) {
-                    this.$emit('input', value)
+                    this.$emit('update:modelValue', value)
                 },
             },
             codestyle() {
@@ -155,11 +164,12 @@
         },
         methods: {
             initialize() {
+                if (!this.open) return
                 this.history = JSON.parse(localStorage.getItem('sql_history') || '[]')
 
-                if (this.open && this.selected >= 0) {
+                if (this.selected >= 0) {
                     requestAnimationFrame(() => {
-                        goTo('.sql-history-item.selected', { container: '.sql-history-list', duration: 0 })
+                        this.goTo('.sql-history-item.selected', { container: '.sql-history-list', duration: 0 })
                     })
                 }
             },
@@ -235,7 +245,7 @@
                                 const item_height = document.querySelector('.sql-history-item.selected')?.clientHeight
                                 if (!list_height || !item_height) return
                                 const offset = (list_height - item_height) / 2
-                                goTo('.sql-history-item.selected', {
+                                this.goTo('.sql-history-item.selected', {
                                     container: '.sql-history-list',
                                     duration: 200,
                                     offset,
@@ -267,12 +277,13 @@
     }
 </style>
 
-<style scoped lang="scss">
+<style lang="scss">
     .sql-history-popup {
-        max-height: 95% !important;
         height: 95%;
     }
+</style>
 
+<style scoped lang="scss">
     .sql-history-container {
         display: flex;
         flex-direction: column;

@@ -43,13 +43,20 @@ html {
     }
 
     .v-theme--dark .v-list {
-        background: var(--v-controls-darken1);
+        background: rgb(var(--v-theme-controls));
     }
 
     // dialog
 
     .v-dialog {
-        box-shadow: 0 0 20px 10px var(--v-controls_border-darken2);
+        .v-card {
+            box-shadow: 0 0 20px 5px rgb(var(--v-theme-background));
+            background-color: rgba(var(--v-theme-panel));
+
+            .v-card-title {
+                background-color: rgba(var(--v-theme-controls));
+            }
+        }
     }
 
     // stepper
@@ -64,8 +71,8 @@ html {
         padding: 0 20px;
     }
 
-    .v-stepper__step--active {
-        border-bottom: solid 2px var(--v-primary-base);
+    .v-stepper-item--selected {
+        border-bottom: solid 2px rgb(var(--v-theme-primary));
     }
 
     .v-stepper-item__avatar {
@@ -75,7 +82,8 @@ html {
     .v-stepper-header {
         justify-content: flex-start;
         height: $header-height;
-        background-color: var(--v-controls-base);
+        background-color: rgb(var(--v-theme-controls));
+        box-shadow: none;
     }
 
     .v-stepper-window {
@@ -95,7 +103,7 @@ html {
     .splitpanes.default-theme .splitpanes__pane, .scrollable {
         overflow: auto;
         position: relative;
-        border: solid 1px var(--v-controls-darken1);
+        border: solid 1px rgb(var(--v-theme-controls_border));
 
         ::-webkit-scrollbar {
             width: 10px;
@@ -103,42 +111,28 @@ html {
         }
 
         ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner {
-            background-color: var(--v-controls-darken1);
+            background-color: rgb(var(--v-theme-controls_border));
         }
 
         ::-webkit-scrollbar-thumb {
             border-radius: 10px;
-            background-color: var(--v-controls-darken2);
-            border: solid 2px var(--v-controls-darken1);
+            background-color: rgb(var(--v-theme-controls));
+            border: solid 2px rgb(var(--v-theme-controls_border));
         }
     }
 
-    .v-theme--light {
-        .splitpanes.default-theme {
-            .splitpanes__splitter {
-                background-color: var(--v-controls-base);
-
-                &::before, &::after {
-                    background-color: var(--v-controls-darken2);
-                }
-            }
+    .splitpanes.default-theme {
+        .splitpanes__pane {
+            background-color: rgb(var(--v-theme-panel));
         }
-    }
 
-    .v-theme--dark {
-        .splitpanes.default-theme {
-            .splitpanes__pane {
-                background-color: var(--v-panel-base);
-            }
+        .splitpanes__splitter {
+            background-color: rgb(var(--v-theme-controls));
 
-            .splitpanes__splitter {
-                background-color: var(--v-controls-base);
+            border-color: rgb(var(--v-theme-controls_border));
 
-                border-color: var(--v-controls-darken1);
-
-                &::before, &::after {
-                    background-color: var(--v-controls-darken4);
-                }
+            &::before, &::after {
+                background-color: rgb(var(--v-theme-neutral));
             }
         }
     }

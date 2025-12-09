@@ -86,7 +86,7 @@
                 </v-col>
             </v-layout>
         </v-footer>
-        <Settings v-model="settings_popup" :settings.sync="settings" />
+        <Settings v-model="settings_popup" v-model:settings="settings" />
     </v-app>
 </template>
 
@@ -97,9 +97,9 @@
     import Settings from './views/settings/Settings.vue'
     import DevicePicker from './components/DevicePicker.vue'
     import IPTextField from './components/IPTextField.vue'
-    import { settings as default_settings } from './views/settings/defaults'
     import { defaultsDeep, orderBy, debounce } from 'lodash'
     import http, { cancelRequests } from './lib/http'
+    import { defaultSettings } from './lib/settings'
     import checkUpdate from './plugins/update'
 
     const pages = [
@@ -131,7 +131,7 @@
             current_page: -1,
             requests: 0,
             settings_popup: false,
-            settings: default_settings,
+            settings: defaultSettings,
             host: { ip: '' },
             m_devices: [],
             now: Date.now(),
@@ -224,7 +224,7 @@
                 this.electron.ipcRenderer.removeAllListeners('search-devices')
             }
 
-            this.settings = defaultsDeep(JSON.parse(localStorage.getItem('settings')), default_settings)
+            this.settings = defaultsDeep(JSON.parse(localStorage.getItem('settings')), defaultSettings)
             this.host = JSON.parse(localStorage.getItem('host')) || {}
             this.show_device_picker = JSON.parse(localStorage.getItem('show_device_picker') || !!this.electron)
 

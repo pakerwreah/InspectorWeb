@@ -12,7 +12,7 @@
             <v-card-title class="panel pa-1 px-2">
                 <v-layout>
                     <v-col xs1 align-self-center>
-                        <v-checkbox v-model="visible_all" class="my-1 py-0" dense hide-details />
+                        <v-checkbox v-model="visible_all" class="my-1 py-0" density="compact" hide-details />
                     </v-col>
                     <v-col align-self-center>
                         <v-text-field
@@ -37,7 +37,12 @@
                     <v-hover v-slot:default="{ hover }">
                         <v-layout v-show="listed[i]" class="columns-filter-item" :class="{ selected: selected === i }">
                             <v-col xs1 align-self-center>
-                                <v-checkbox v-model="visible[i]" class="my-0 py-1 mr-2" dense hide-details />
+                                <v-checkbox
+                                    v-model="visible[i]"
+                                    class="my-0 py-1 mr-2"
+                                    density="compact"
+                                    hide-details
+                                />
                             </v-col>
                             <v-col class="ml-2 align-stretch">
                                 <v-layout class="pointer noselect fill-height" @click="toggleVisible(i)">

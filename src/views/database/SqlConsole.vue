@@ -8,7 +8,7 @@
                 <v-icon color="success">mdi-play</v-icon>
             </v-btn>
             <v-spacer />
-            <v-checkbox class="my-0 py-0 mr-2" v-model="script" label="Script" dense hide-details />
+            <v-checkbox class="my-0 py-0 mr-2" v-model="script" label="Script" color="accent" hide-details />
         </div>
 
         <v-ace-editor
@@ -42,7 +42,6 @@
         components: { VAceEditor, SqlHistory },
         mixins: [theme],
         props: {
-            value: String,
             schema: Object,
         },
         data: () => ({
