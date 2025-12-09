@@ -1,16 +1,7 @@
 <template>
     <v-dialog v-model="open" content-class="sql-history-popup" attach>
         <v-card class="sql-history-container">
-            <v-card-title class="pa-1">
-                <v-layout class="text-center">
-                    <v-col>SQL History</v-col>
-                    <div class="position-absolute right-0 mr-2 d-flex align-center fill-height">
-                        <v-btn @click="open = false" density="comfortable" icon>
-                            <v-icon color="neutral">mdi-close</v-icon>
-                        </v-btn>
-                    </div>
-                </v-layout>
-            </v-card-title>
+            <DialogHeader @close="open = false" />
             <v-card-text class="pa-0 flex relative">
                 <splitpanes class="default-theme absolute-expand">
                     <pane style="min-width: 250px" size="40">
@@ -89,6 +80,7 @@
     import theme from '@/mixins/theme'
     import { defineComponent } from 'vue'
     import { useGoTo } from 'vuetify/framework'
+    import DialogHeader from '@/components/DialogHeader.vue'
 
     type SQLHistoryItem = {
         sql: string
@@ -100,7 +92,7 @@
 
     export default defineComponent({
         name: 'SqlHistory',
-        components: { Splitpanes, Pane, highlightjs },
+        components: { DialogHeader, Splitpanes, Pane, highlightjs },
         mixins: [theme],
         props: {
             modelValue: Boolean,

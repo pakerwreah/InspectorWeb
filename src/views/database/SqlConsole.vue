@@ -1,10 +1,10 @@
 <template>
     <div class="console-wrapper">
         <div class="d-flex align-center">
-            <v-btn icon density="comfortable" class="ml-3" @click="history_popup = true">
+            <v-btn icon class="ml-3" @click="history_popup = true">
                 <v-icon color="neutral">mdi-history</v-icon>
             </v-btn>
-            <v-btn icon density="comfortable" class="ml-2" @click="executeQuery">
+            <v-btn icon class="ml-2" @click="executeQuery">
                 <v-icon color="success">mdi-play</v-icon>
             </v-btn>
             <v-spacer />

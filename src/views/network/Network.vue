@@ -61,36 +61,6 @@
                     </v-list-group>
                 </v-list>
             </div>
-            <v-speed-dial open-on-hover bottom right fixed class="close_menu">
-                <template v-slot:activator>
-                    <v-tooltip left>
-                        <template v-slot:activator="{ on }">
-                            <v-fab-transition hide-on-leave>
-                                <v-btn v-show="clear_visible" @click.stop="clearEndedRequests" v-on="on" small fab>
-                                    <v-icon>mdi-trash-can-outline</v-icon>
-                                </v-btn>
-                            </v-fab-transition>
-                        </template>
-                        <span>Clear finished</span>
-                    </v-tooltip>
-                </template>
-                <v-tooltip left>
-                    <template v-slot:activator="{ on }">
-                        <v-btn @click.stop="clearPreviousRequests" v-on="on" small fab>
-                            <v-icon>mdi-upload-off</v-icon>
-                        </v-btn>
-                    </template>
-                    <span>Clear previous requests</span>
-                </v-tooltip>
-                <v-tooltip left>
-                    <template v-slot:activator="{ on }">
-                        <v-btn @click.stop="clearAllRequests" v-on="on" small fab>
-                            <v-icon>mdi-skull-outline</v-icon>
-                        </v-btn>
-                    </template>
-                    <span>Clear all requests</span>
-                </v-tooltip>
-            </v-speed-dial>
             <v-text-field
                 v-model="search_filter"
                 v-show="search_enabled"
@@ -116,6 +86,27 @@
             </splitpanes>
         </pane>
     </splitpanes>
+
+    <div class="clear_menu">
+        <v-speed-dial open-on-hover location="top center">
+            <template v-slot:activator="{ props }">
+                <v-fab-transition hide-on-leave>
+                    <v-fab v-show="clear_visible" @click.stop="clearEndedRequests" v-bind="props" icon>
+                        <v-icon>mdi-trash-can-outline</v-icon>
+                        <v-tooltip location="start" activator="parent">Clear finished</v-tooltip>
+                    </v-fab>
+                </v-fab-transition>
+            </template>
+            <v-fab key="1" @click.stop="clearPreviousRequests" icon>
+                <v-icon>mdi-upload-off</v-icon>
+                <v-tooltip location="start" activator="parent">Clear previous requests</v-tooltip>
+            </v-fab>
+            <v-fab key="2" @click.stop="clearAllRequests" icon>
+                <v-icon>mdi-skull-outline</v-icon>
+                <v-tooltip location="start" activator="parent">Clear all requests</v-tooltip>
+            </v-fab>
+        </v-speed-dial>
+    </div>
 </template>
 
 <script>
@@ -124,7 +115,7 @@
     import { pickBy, sortBy, debounce } from 'lodash'
     import { filesize } from 'filesize'
     import db from './database'
-    import { decode } from './utils'
+    import { decode } from '@/lib/network'
     import { formatTimestamp } from '@/utils'
     import RequestViewer from './RequestViewer.vue'
 
@@ -529,15 +520,14 @@
     }
 </script>
 
-<style lang="scss">
-    .network-panel {
-        .close_menu .v-speed-dial__list {
-            padding-bottom: 8px;
-        }
-    }
-</style>
-
 <style scoped lang="scss">
+    .clear_menu {
+        position: fixed;
+        right: 16px;
+        bottom: 32px;
+        z-index: 9999;
+    }
+
     .network-container {
         .request-item {
             min-height: 0;

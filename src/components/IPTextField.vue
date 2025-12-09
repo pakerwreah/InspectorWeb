@@ -1,52 +1,47 @@
 <template>
-    <v-text-field v-model="ip"
-                  prefix="IP Address: "
-                  class="ip-field"
-                  placeholder="___.___.___.___"
-                  height="28"
-                  :error="ip.includes(':')"
-                  outlined
-                  hide-details />
+    <v-text-field
+        v-model="ip"
+        prefix="IP Address: "
+        class="ip-field"
+        placeholder="___.___.___.___"
+        height="28"
+        :error="ip.includes(':')"
+        hide-details
+        variant="solo"
+        color="accent"
+    />
 </template>
 
-<script>
-    export default {
-        name: 'IPTextField',
-        props: {
-            value: Object
-        },
-        computed: {
-            ip: {
-                get () {
-                    return this.value.ip || ''
-                },
-                set (ip) {
-                    this.$emit('input', { ip })
-                }
-            }
-        }
-    }
+<script setup lang="ts">
+    import { ref, watch } from 'vue'
+
+    const model = defineModel<{ ip?: string }>()
+
+    const ip = ref(model.value?.ip ?? '')
+
+    watch(ip, (value) => {
+        model.value = { ip: value }
+    })
 </script>
 
 <style lang="scss">
     .ip-field {
-        &.error--text input {
-            color: var(--v-error-base);
+        .v-field__field > * {
+            min-height: 0;
+            padding-block: 4px;
         }
 
-        &.v-text-field--outlined {
-            fieldset {
-                border-width: 0 !important;
-            }
+        .v-text-field__prefix {
+            opacity: 1;
+            transition: color 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
+        }
 
-            .v-input__slot {
-                min-height: 0 !important;
-                background-color: var(--v-controls-darken1);
+        &.v-input--error .v-text-field__prefix {
+            color: rgb(var(--v-theme-error));
+        }
 
-                input:not(:disabled):not(:empty)::placeholder {
-                    color: var(--v-text-base);
-                }
-            }
+        &.v-input--focused:not(.v-input--error) .v-text-field__prefix {
+            color: rgb(var(--v-theme-primary));
         }
     }
 </style>

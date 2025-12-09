@@ -5,6 +5,17 @@ import 'vuetify/styles'
 import './fonts-css'
 
 export default createVuetify({
+    defaults: {
+        global: {
+            density: 'comfortable',
+        },
+        VBtn: {
+            variant: 'slim',
+        },
+        VTextField: {
+            density: 'compact',
+        },
+    },
     icons: {
         defaultSet: 'mdi',
         aliases,

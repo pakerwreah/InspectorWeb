@@ -1,63 +1,54 @@
 <template>
     <v-app>
-        <v-main>
-            <v-stepper v-model="current_page" non-linear>
-                <v-stepper-header>
-                    <v-stepper-item
-                        v-for="(page, i) in pages"
-                        :key="i"
-                        :step="i + 1"
-                        :complete="current_page === i + 1"
-                        color="primary"
-                        editable
+        <v-tabs v-model="current_page" bg-color="controls">
+            <v-tab v-for="(page, i) in pages" :key="i" color="primary">
+                <v-layout>
+                    {{ page.name }}
+                    <v-col
+                        v-if="page.key === 'network' && requests > 0"
+                        class="badge step-badge"
+                        align-self-center
+                        text-center
                     >
-                        <v-layout>
-                            {{ page.name }}
-                            <v-col
-                                v-if="page.key === 'network' && requests > 0"
-                                class="badge step-badge"
-                                align-self-center
-                                text-center
-                            >
-                                {{ requests }}
-                            </v-col>
-                        </v-layout>
-                    </v-stepper-item>
-                    <v-spacer></v-spacer>
-                    <v-btn icon density="comfortable" class="mx-1" flat @click="settings_popup = true">
-                        <v-icon>mdi-cog</v-icon>
-                    </v-btn>
-                </v-stepper-header>
+                        {{ requests }}
+                    </v-col>
+                </v-layout>
+            </v-tab>
+            <v-spacer></v-spacer>
+            <v-btn icon class="mx-1 align-self-center" @click="settings_popup = true">
+                <v-icon>mdi-cog</v-icon>
+            </v-btn>
+        </v-tabs>
 
-                <v-stepper-window>
-                    <v-stepper-window-item :step="1">
-                        <Database />
-                    </v-stepper-window-item>
-                    <v-stepper-window-item :step="2">
-                        <Network
-                            :active="current_page === 2"
-                            :settings="settings.network"
-                            :ip="host.ip"
-                            :port="settings.port"
-                            @requests="setRequestsCount"
-                        />
-                    </v-stepper-window-item>
-                    <v-stepper-window-item v-for="(plugin, i) in plugins" :key="plugin.key" :step="i + 3">
-                        <Plugin :active="current_page === i + 3" :plugin="plugin" />
-                    </v-stepper-window-item>
-                </v-stepper-window>
-            </v-stepper>
+        <v-main>
+            <v-tabs-window v-model="current_page">
+                <v-tabs-window-item>
+                    <Database />
+                </v-tabs-window-item>
+                <v-tabs-window-item>
+                    <Network
+                        :active="current_page === 1"
+                        :settings="settings.network"
+                        :ip="host.ip"
+                        :port="settings.port"
+                        @requests="setRequestsCount"
+                    />
+                </v-tabs-window-item>
+                <v-tabs-window-item v-for="(plugin, i) in plugins" :key="plugin.key" :step="i + 3">
+                    <Plugin :active="current_page === i + 3" :plugin="plugin" />
+                </v-tabs-window-item>
+            </v-tabs-window>
         </v-main>
 
-        <v-footer app>
-            <v-layout>
+        <v-footer app color="controls">
+            <v-row>
                 <v-col>
-                    <v-layout>
-                        <v-col shrink>
+                    <v-row>
+                        <v-col>
                             <DevicePicker v-if="show_device_picker" v-model:value="host" :devices="devices" />
-                            <IPTextField v-else v-model:value="host" />
+                            <IPTextField v-else v-model="host" />
                         </v-col>
-                        <v-col shrink>
+                        <v-col>
                             <v-btn
                                 v-if="electron"
                                 style="margin: -5px 0"
@@ -69,22 +60,23 @@
                                 <v-icon v-text="show_device_picker ? 'mdi-pencil' : 'mdi-radar'" />
                             </v-btn>
                         </v-col>
-                    </v-layout>
+                    </v-row>
                 </v-col>
-                <v-col shrink align-self-center>
+                <v-spacer />
+                <div class="align-self-center mr-2">
                     <v-fade-transition>
-                        <v-row v-show="current_page <= 1" class="mr-2">
+                        <v-row v-show="current_page === 0" class="mr-2">
                             <span class="version">
                                 <span :class="{ strike: release }">v{{ version }}</span>
-                                <span v-if="release" class="white--text ml-2">v{{ release.name }}</span>
+                                <span v-if="release" class="text-white ml-2">v{{ release.name }}</span>
                             </span>
-                            <v-icon v-if="release" @click="open(release.url)" class="green--text pointer ml-1" small>
+                            <v-icon v-if="release" @click="open(release.url)" class="text-green pointer ml-1">
                                 mdi-download
                             </v-icon>
                         </v-row>
                     </v-fade-transition>
-                </v-col>
-            </v-layout>
+                </div>
+            </v-row>
         </v-footer>
         <Settings v-model="settings_popup" v-model:settings="settings" />
     </v-app>
@@ -102,7 +94,7 @@
     import { defaultSettings } from './lib/settings'
     import checkUpdate from './plugins/update'
 
-    const pages = [
+    const fixed_pages = [
         {
             key: 'database',
             name: 'Database',
@@ -143,10 +135,10 @@
                 return window.electron
             },
             version() {
-                return import.meta.env.VERSION
+                return APP_VERSION
             },
             pages() {
-                return pages.concat(this.plugins)
+                return fixed_pages.concat(this.plugins)
             },
             devices() {
                 return this.m_devices
@@ -251,17 +243,15 @@
                 http.defaults.baseURL = `http://${host.ip}:${this.settings.port}`
                 localStorage.setItem('host', JSON.stringify(host))
             },
-            loadPlugins() {
+            async loadPlugins() {
                 cancelRequests()
-                return http
-                    .get('/plugins')
-                    .then(({ data }) => {
-                        this.plugins = data
-                    })
-                    .finally(() => {
-                        const current_page = parseInt(localStorage.getItem('current_page'))
-                        this.current_page = Math.min(Math.max(1, current_page), this.pages.length)
-                    })
+                try {
+                    const { data } = await http.get('/plugins')
+                    this.plugins = data
+                } finally {
+                    const current_page = parseInt(localStorage.getItem('current_page')) || 0
+                    this.current_page = Math.min(current_page, this.pages.length - 1)
+                }
             },
             setRequestsCount(count) {
                 this.requests = count
@@ -284,16 +274,5 @@
 
     .strike {
         text-decoration: line-through;
-    }
-</style>
-
-<style lang="scss">
-    .v-footer {
-        background-color: var(--v-controls-base) !important;
-        padding: 6px !important;
-
-        .v-text-field {
-            width: 245px;
-        }
     }
 </style>

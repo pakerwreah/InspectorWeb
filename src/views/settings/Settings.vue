@@ -1,17 +1,7 @@
 <template>
     <v-dialog max-width="600" v-model="open" attach>
         <v-card>
-            <v-card-title class="pa-1">
-                <v-layout class="text-center">
-                    <v-col>Settings</v-col>
-                    <div class="position-absolute right-0 mr-2 d-flex align-center fill-height">
-                        <v-btn @click="open = false" density="comfortable" icon>
-                            <v-icon color="neutral">mdi-close</v-icon>
-                        </v-btn>
-                    </div>
-                </v-layout>
-            </v-card-title>
-            <v-divider light />
+            <DialogHeader @close="open = false" />
             <v-card-text class="pa-0 settings-content relative">
                 <v-row class="absolute-expand">
                     <v-col cols="4">
@@ -87,12 +77,14 @@
     import { vMaska } from 'maska/vue'
     import theme from '@/mixins/theme'
     import { darkModeMatcher, type Settings } from '@/lib/settings'
+    import DialogHeader from '@/components/DialogHeader.vue'
 
     const pages = ['Theme', 'Network'] as const
     type Page = (typeof pages)[number]
 
     export default {
         name: 'Settings',
+        components: { DialogHeader },
         directives: {
             mask: vMaska,
         },
@@ -126,7 +118,6 @@
         watch: {
             'settings.dark_mode': {
                 handler(value) {
-                    console.log('settings.dark_mode', value)
                     if (value === 'auto') {
                         this.dark_mode = !!darkModeMatcher?.matches
                     } else {

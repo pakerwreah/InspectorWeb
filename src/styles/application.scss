@@ -50,7 +50,6 @@ html {
 
     .v-dialog {
         .v-card {
-            box-shadow: 0 0 20px 5px rgb(var(--v-theme-background));
             background-color: rgba(var(--v-theme-panel));
 
             .v-card-title {
@@ -59,42 +58,9 @@ html {
         }
     }
 
-    // stepper
+    // windows
 
-    $header-height: 40px;
-
-    .v-stepper {
-        border-radius: 0;
-    }
-
-    .v-stepper__step {
-        padding: 0 20px;
-    }
-
-    .v-stepper-item--selected {
-        border-bottom: solid 2px rgb(var(--v-theme-primary));
-    }
-
-    .v-stepper-item__avatar {
-        display: none;
-    }
-
-    .v-stepper-header {
-        justify-content: flex-start;
-        height: $header-height;
-        background-color: rgb(var(--v-theme-controls));
-        box-shadow: none;
-    }
-
-    .v-stepper-window {
-        margin: 0;
-    }
-
-    .v-stepper-item {
-        padding-block: 0;
-    }
-
-    .v-stepper, .v-stepper-window, .v-stepper-window-item {
+    .v-window, .v-window-item {
         height: 100%;
     }
 
