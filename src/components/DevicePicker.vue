@@ -15,27 +15,27 @@
               hide-details
               hide-selected>
         <template v-slot:prepend-inner v-if="!selected">
-            <v-flex align-self-center shrink text-center>
+            <v-col align-self-center shrink text-center>
                 <div v-if="devices.length" class="badge controls--text text">{{ devices.length }}</div>
                 <v-icon v-else dense class="neutral--text">mdi-help-circle-outline</v-icon>
-            </v-flex>
+            </v-col>
         </template>
         <template v-slot:selection="{item}">
             <v-layout>
-                <v-flex shrink align-self-center mr-2>
+                <v-col shrink align-self-center mr-2>
                     <v-icon dense>{{ deviceIcon(item.type) }}</v-icon>
-                </v-flex>
-                <v-flex align-self-center class="text-no-wrap overflow-hidden">
+                </v-col>
+                <v-col align-self-center class="text-no-wrap overflow-hidden">
                     {{ item.name }} - {{ item.ip }}
-                </v-flex>
+                </v-col>
             </v-layout>
         </template>
         <template v-slot:item="{item}">
             <v-layout>
-                <v-flex shrink align-self-center mr-4>
+                <v-col shrink align-self-center mr-4>
                     <v-icon>{{ deviceIcon(item.type) }}</v-icon>
-                </v-flex>
-                <v-flex>
+                </v-col>
+                <v-col>
                     <v-col>
                         <v-row>{{ item.name }}</v-row>
                         <v-row>
@@ -45,7 +45,7 @@
                         </v-row>
                         <v-row><small>{{ item.adapter }}: {{ item.ip }}</small></v-row>
                     </v-col>
-                </v-flex>
+                </v-col>
             </v-layout>
         </template>
     </v-select>

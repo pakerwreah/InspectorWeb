@@ -1,49 +1,64 @@
 <template>
     <splitpanes class="network-panel default-theme fill-height">
         <pane style="min-width: 250px" :size="100 - detail_size">
-            <div ref="scroll" class="network-container absolute-expand overflow-y-auto" :class="{'pt-10': is_searching}">
+            <div
+                ref="scroll"
+                class="network-container absolute-expand overflow-y-auto"
+                :class="{ 'pt-10': is_searching }"
+            >
                 <v-list v-if="session_list.length" dense>
-                    <v-list-item-group v-model="selected" color="primary">
-                        <div v-for="(session,i) in session_list" :key="i">
+                    <v-list-group v-model="selected" color="primary">
+                        <div v-for="(session, i) in session_list" :key="i">
                             <div v-if="!is_searching" class="text-center text--text font-weight-bold pt-4">
                                 {{ formatTimestamp(session.timestamp, true) }}
                             </div>
-                            <template v-for="request in session.requests.map(uid => requests[uid])">
-                                <v-list-item :key="request.uid" v-show="requests_visibility[request.uid]" class="request-item" two-line>
-                                    <v-list-item-content class="py-0">
-                                        <v-list-item-title class="pt-2">
-                                            <span class="method" :class="request.headers.method.toLowerCase()">
-                                                {{ request.headers.method }}
-                                            </span>
-                                            {{ request.headers.url.pathname }}
-                                        </v-list-item-title>
-                                        <v-list-item-subtitle class="origin pb-2">
-                                            {{ request.headers.url.origin }}
-                                        </v-list-item-subtitle>
-                                    </v-list-item-content>
+                            <template
+                                v-for="request in session.requests.map((uid) => requests[uid])"
+                                :key="request.uid"
+                            >
+                                <v-list-item v-show="requests_visibility[request.uid]" class="request-item" two-line>
+                                    <v-list-item-title class="pt-2">
+                                        <span class="method" :class="request.headers.method.toLowerCase()">
+                                            {{ request.headers.method }}
+                                        </span>
+                                        {{ request.headers.url.pathname }}
+                                    </v-list-item-title>
+                                    <v-list-item-subtitle class="origin pb-2">
+                                        {{ request.headers.url.origin }}
+                                    </v-list-item-subtitle>
                                     <div class="mr-3">
                                         <table>
-                                            <tr class="request-info">
-                                                <td class="request-status" :class="statusColor(request.status)">
-                                                    <span v-if="request.status" class="font-weight-bold">
-                                                        {{ request.status }}
-                                                    </span>
-                                                    <v-icon v-else class="request-loading">mdi-timelapse</v-icon>
-                                                </td>
-                                                <td class="request-timestamp font-weight-bold text-right">
-                                                    {{ formatTimestamp(request.timestamp) }}
-                                                </td>
-                                            </tr>
-                                            <tr v-if="request.response" class="v-list-item__subtitle request-info">
-                                                <td>{{ formatDuration(request.response.timestamp - request.timestamp) }}</td>
-                                                <td class="text-right">{{ filesize(request.response.body.size) }}</td>
-                                            </tr>
+                                            <tbody>
+                                                <tr class="request-info">
+                                                    <td class="request-status" :class="statusColor(request.status)">
+                                                        <span v-if="request.status" class="font-weight-bold">
+                                                            {{ request.status }}
+                                                        </span>
+                                                        <v-icon v-else class="request-loading">mdi-timelapse</v-icon>
+                                                    </td>
+                                                    <td class="request-timestamp font-weight-bold text-right">
+                                                        {{ formatTimestamp(request.timestamp) }}
+                                                    </td>
+                                                </tr>
+                                                <tr v-if="request.response" class="v-list-item__subtitle request-info">
+                                                    <td>
+                                                        {{
+                                                            formatDuration(
+                                                                request.response.timestamp - request.timestamp,
+                                                            )
+                                                        }}
+                                                    </td>
+                                                    <td class="text-right">
+                                                        {{ filesize(request.response.body.size) }}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
                                         </table>
                                     </div>
                                 </v-list-item>
                             </template>
                         </div>
-                    </v-list-item-group>
+                    </v-list-group>
                 </v-list>
             </div>
             <v-speed-dial open-on-hover bottom right fixed class="close_menu">
@@ -51,11 +66,7 @@
                     <v-tooltip left>
                         <template v-slot:activator="{ on }">
                             <v-fab-transition hide-on-leave>
-                                <v-btn v-show="clear_visible"
-                                       @click.stop="clearEndedRequests"
-                                       v-on="on"
-                                       small fab
-                                       v-blur>
+                                <v-btn v-show="clear_visible" @click.stop="clearEndedRequests" v-on="on" small fab>
                                     <v-icon>mdi-trash-can-outline</v-icon>
                                 </v-btn>
                             </v-fab-transition>
@@ -65,10 +76,7 @@
                 </template>
                 <v-tooltip left>
                     <template v-slot:activator="{ on }">
-                        <v-btn @click.stop="clearPreviousRequests"
-                               v-on="on"
-                               small fab
-                               v-blur>
+                        <v-btn @click.stop="clearPreviousRequests" v-on="on" small fab>
                             <v-icon>mdi-upload-off</v-icon>
                         </v-btn>
                     </template>
@@ -76,27 +84,26 @@
                 </v-tooltip>
                 <v-tooltip left>
                     <template v-slot:activator="{ on }">
-                        <v-btn @click.stop="clearAllRequests"
-                               v-on="on"
-                               small fab
-                               v-blur>
+                        <v-btn @click.stop="clearAllRequests" v-on="on" small fab>
                             <v-icon>mdi-skull-outline</v-icon>
                         </v-btn>
                     </template>
                     <span>Clear all requests</span>
                 </v-tooltip>
             </v-speed-dial>
-            <v-text-field v-model="search_filter"
-                          v-show="search_enabled"
-                          @click:clear="clearSearch"
-                          ref="search"
-                          class="network_search"
-                          prepend-inner-icon="mdi-magnify"
-                          placeholder="Search..."
-                          autocomplete="disabled"
-                          spellcheck="false"
-                          hide-details
-                          clearable />
+            <v-text-field
+                v-model="search_filter"
+                v-show="search_enabled"
+                @click:clear="clearSearch"
+                ref="search"
+                class="network_search"
+                prepend-inner-icon="mdi-magnify"
+                placeholder="Search..."
+                autocomplete="disabled"
+                spellcheck="false"
+                hide-details
+                clearable
+            />
         </pane>
         <pane :size="detail_size">
             <splitpanes class="default-theme fill-height" horizontal>
@@ -115,11 +122,11 @@
     // noinspection ES6CheckImport
     import { Splitpanes, Pane } from 'splitpanes'
     import { pickBy, sortBy, debounce } from 'lodash'
-    import filesize from 'filesize'
+    import { filesize } from 'filesize'
     import db from './database'
     import { decode } from './utils'
     import { formatTimestamp } from '@/utils'
-    import RequestViewer from './RequestViewer'
+    import RequestViewer from './RequestViewer.vue'
 
     export default {
         name: 'Network',
@@ -128,7 +135,7 @@
             active: Boolean,
             settings: Object,
             ip: String,
-            port: String
+            port: String,
         },
         data: () => ({
             session_list: [],
@@ -142,51 +149,51 @@
             ws_request_reconnect_timeout: null,
             ws_response_reconnect_timeout: null,
             search_filter: '',
-            search_enabled: false
+            search_enabled: false,
         }),
         computed: {
-            host () {
+            host() {
                 return this.ip && this.port && `${this.ip}:${this.port}`
             },
-            reconnect () {
+            reconnect() {
                 return debounce(() => {
                     this.disconnect()
                     this.connect()
                 }, 1500)
             },
-            detail_size () {
+            detail_size() {
                 return this.selected !== undefined ? 40 : 0
             },
-            session () {
+            session() {
                 const len = this.session_list.length
                 return len ? this.session_list[len - 1] : {}
             },
-            selected_request () {
+            selected_request() {
                 if (this.selected !== undefined) {
                     const requests = sortBy(Object.values(this.requests), 'timestamp')
                     return requests[this.selected]
                 }
                 return undefined
             },
-            selected_response () {
+            selected_response() {
                 const req = this.selected_request
                 if (req) {
                     return req.response
                 }
                 return undefined
             },
-            total_requests () {
+            total_requests() {
                 return Object.keys(this.requests).length
             },
-            is_searching () {
+            is_searching() {
                 return this.search_filter?.trim().length > 0
             },
-            requests_visibility () {
+            requests_visibility() {
                 const term = this.search_filter?.trim().toLowerCase()
-                const props = ({ pathname, origin }) => [pathname, origin].map(p => p.toLowerCase())
-                const search = item => !term || props(item).findIndex(p => p.includes(term)) >= 0
+                const props = ({ pathname, origin }) => [pathname, origin].map((p) => p.toLowerCase())
+                const search = (item) => !term || props(item).findIndex((p) => p.includes(term)) >= 0
 
-                const requests = this.session_list.flatMap(({ requests }) => requests.map(uid => this.requests[uid]))
+                const requests = this.session_list.flatMap(({ requests }) => requests.map((uid) => this.requests[uid]))
 
                 const items = {}
 
@@ -195,16 +202,16 @@
                 }
 
                 return items
-            }
+            },
         },
         watch: {
-            host (host) {
+            host(host) {
                 if (host) {
                     this.reconnect()
                 }
             },
             active: {
-                handler (active) {
+                handler(active) {
                     if (active) {
                         setTimeout(() => {
                             this.clear_visible = true
@@ -220,9 +227,9 @@
                         }
                     }
                 },
-                immediate: true
+                immediate: true,
             },
-            'settings.sleep' (sleep) {
+            'settings.sleep'(sleep) {
                 if (!this.active) {
                     if (sleep) {
                         this.disconnect()
@@ -231,12 +238,12 @@
                     }
                 }
             },
-            total_requests (count) {
+            total_requests(count) {
                 this.$emit('requests', count)
                 this.stickyBottom()
-            }
+            },
         },
-        mounted () {
+        mounted() {
             document.addEventListener('keydown', this.nextItem)
             document.addEventListener('keydown', this.toggleSearch)
 
@@ -247,14 +254,14 @@
                 })
             })
         },
-        beforeDestroy () {
+        beforeDestroy() {
             document.removeEventListener('keydown', this.nextItem)
             document.removeEventListener('keydown', this.toggleSearch)
 
             this.disconnect()
         },
         methods: {
-            connect () {
+            connect() {
                 if (!this.ws_request) {
                     this.openRequest()
                 }
@@ -262,21 +269,21 @@
                     this.openResponse()
                 }
             },
-            disconnect () {
+            disconnect() {
                 this.closeSocket(this.ws_request)
                 this.ws_request = null
 
                 this.closeSocket(this.ws_response)
                 this.ws_response = null
             },
-            closeSocket (ws) {
+            closeSocket(ws) {
                 if (ws) {
                     ws.onmessage = null
                     ws.onclose = null
                     ws.close()
                 }
             },
-            nextVisible (selected, inc) {
+            nextVisible(selected, inc) {
                 // ES2015: insertion order is preserved, except in the case of integers keys
                 const values = Object.values(this.requests_visibility)
                 for (let i = selected + inc; i >= 0 && i < values.length; i += inc) {
@@ -285,7 +292,7 @@
                     }
                 }
             },
-            nextItem (e) {
+            nextItem(e) {
                 if (this.active) {
                     let next
                     if (e.keyCode === 38) {
@@ -301,9 +308,9 @@
             },
             newSession: () => ({
                 timestamp: new Date().getTime(),
-                requests: []
+                requests: [],
             }),
-            openRequest () {
+            openRequest() {
                 this.closeSocket(this.ws_request)
                 this.ws_request = null
 
@@ -317,7 +324,7 @@
 
                 let initSession = true
 
-                const ws = this.ws_request = new WebSocket(`ws://${this.host}/network/request`)
+                const ws = (this.ws_request = new WebSocket(`ws://${this.host}/network/request`))
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -358,7 +365,7 @@
                     }
                 }
             },
-            openResponse () {
+            openResponse() {
                 this.closeSocket(this.ws_response)
                 this.ws_response = null
 
@@ -370,7 +377,7 @@
                     return
                 }
 
-                const ws = this.ws_response = new WebSocket(`ws://${this.host}/network/response`)
+                const ws = (this.ws_response = new WebSocket(`ws://${this.host}/network/response`))
                 ws.binaryType = 'arraybuffer'
 
                 ws.onopen = () => {
@@ -403,7 +410,7 @@
                     }
                 }
             },
-            async getHistory () {
+            async getHistory() {
                 const history = sortBy(await db.getRequests(), 'timestamp')
                 const session_list = {}
                 const requests = {}
@@ -417,7 +424,7 @@
                 this.session_list = sortBy(Object.values(session_list), 'timestamp')
                 this.requests = requests
             },
-            autoClearRequests () {
+            autoClearRequests() {
                 const limit = this.settings.limit
 
                 if (this.total_requests > limit) {
@@ -428,16 +435,16 @@
                     }
                 }
             },
-            clearAllRequests () {
+            clearAllRequests() {
                 this.session_list = []
                 this.requests = {}
                 this.selected = undefined
                 db.clearRequests()
             },
-            clearPreviousRequests () {
+            clearPreviousRequests() {
                 if (this.session_list.length) {
                     const last_session = this.session
-                    const requests = pickBy(this.requests, r => r.session === last_session.timestamp)
+                    const requests = pickBy(this.requests, (r) => r.session === last_session.timestamp)
                     const req_list = Object.values(requests)
 
                     this.session_list = [last_session]
@@ -448,13 +455,13 @@
                     req_list.forEach(db.putRequest)
                 }
             },
-            clearEndedRequests () {
+            clearEndedRequests() {
                 if (this.session_list.length) {
                     const last_session = this.session
-                    const requests = pickBy(this.requests, r => !r.status && r.session === last_session.timestamp)
+                    const requests = pickBy(this.requests, (r) => !r.status && r.session === last_session.timestamp)
                     const req_list = Object.values(requests)
 
-                    last_session.requests = req_list.map(r => r.uid)
+                    last_session.requests = req_list.map((r) => r.uid)
                     this.session_list = req_list.length ? [last_session] : []
                     this.requests = requests
                     this.selected = undefined
@@ -463,7 +470,7 @@
                     req_list.forEach(db.putRequest)
                 }
             },
-            statusColor (status) {
+            statusColor(status) {
                 status = parseInt(status)
                 if (status === 200) {
                     return 'success--text'
@@ -473,29 +480,29 @@
                     return 'error--text'
                 }
             },
-            formatDuration (value) {
+            formatDuration(value) {
                 if (value >= 1000) {
                     return (value / 1000).toFixed(2) + ' s'
                 } else {
                     return value + ' ms'
                 }
             },
-            stickyBottom () {
+            stickyBottom() {
                 const el = this.$refs.scroll
                 if (el.scrollTop + el.clientHeight >= 0.98 * el.scrollHeight - 10) {
                     this.$nextTick(() => {
                         el.scroll({
                             top: el.scrollHeight,
-                            behavior: 'smooth'
+                            behavior: 'smooth',
                         })
                     })
                 }
             },
-            scrollBottom () {
+            scrollBottom() {
                 const div = this.$refs.scroll
                 div.scrollTop = div.scrollHeight
             },
-            toggleSearch (key) {
+            toggleSearch(key) {
                 if (this.active) {
                     if ((key.ctrlKey || key.metaKey) && key.keyCode === 70) {
                         key.preventDefault()
@@ -513,12 +520,12 @@
                     }
                 }
             },
-            clearSearch () {
+            clearSearch() {
                 this.search_filter = ''
             },
             filesize,
-            formatTimestamp
-        }
+            formatTimestamp,
+        },
     }
 </script>
 
@@ -532,7 +539,6 @@
 
 <style scoped lang="scss">
     .network-container {
-
         .request-item {
             min-height: 0;
             border-bottom: solid 1px #cccccc55;
@@ -568,19 +574,19 @@
             font-weight: bold;
 
             &.get {
-                color: #26B47E;
+                color: #26b47e;
             }
 
             &.post {
-                color: #FFB401;
+                color: #ffb401;
             }
 
             &.put {
-                color: #0F7BED;
+                color: #0f7bed;
             }
 
             &.delete {
-                color: #EE4B48;
+                color: #ee4b48;
             }
 
             color: #969696;
@@ -588,13 +594,15 @@
     }
 
     .theme--light {
-        .network-container, .network_search {
+        .network-container,
+        .network_search {
             background-color: var(--v-controls-base);
         }
     }
 
     .theme--dark {
-        .network-container, .network_search {
+        .network-container,
+        .network_search {
             background-color: var(--v-controls-darken1);
         }
     }

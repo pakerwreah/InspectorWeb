@@ -4,8 +4,8 @@
             <!--suppress HtmlUnknownAttribute - don't break line inside <pre>, thanks! -->
             <pre v-if="json" :class="codestyle" v-highlightjs="body"><code class="json"></code></pre>
 
-            <div v-else-if="plugin.live" class='absolute-expand d-flex'>
-                <iframe ref="iframe" class='flex' :src='frame_src' @load="frame_loaded"></iframe>
+            <div v-else-if="plugin.live" class="absolute-expand d-flex">
+                <iframe ref="iframe" class="flex" :src="frame_src" @load="frame_loaded"></iframe>
             </div>
 
             <div v-else v-html="body" />
@@ -13,16 +13,8 @@
         <v-tooltip left open-delay="1200">
             <template v-slot:activator="{ on }">
                 <v-fab-transition hide-on-leave>
-                    <v-btn v-show="reload_visible"
-                           @click.stop="reload"
-                           v-on="on"
-                           small
-                           fab
-                           fixed
-                           right
-                           bottom
-                           v-blur>
-                        <v-icon :class="{spin: loading}">mdi-sync</v-icon>
+                    <v-btn v-show="reload_visible" @click.stop="reload" v-on="on" small fab fixed right bottom>
+                        <v-icon :class="{ spin: loading }">mdi-sync</v-icon>
                     </v-btn>
                 </v-fab-transition>
             </template>
@@ -32,11 +24,13 @@
 </template>
 
 <script>
+    import http from '@/lib/http'
+
     export default {
         name: 'Plugin',
         props: {
             active: Boolean,
-            plugin: Object
+            plugin: Object,
         },
         data: () => ({
             load_uid: null,
@@ -44,19 +38,19 @@
             loading: false,
             reload_visible: false,
             body: undefined,
-            json: false
+            json: false,
         }),
         computed: {
-            codestyle () {
+            codestyle() {
                 return this.dark_mode ? 'dark' : 'light'
             },
-            frame_src () {
-                return this.load_uid && `${this.$http.defaults.baseURL}/plugins/${this.plugin.key}?${this.load_uid}`
-            }
+            frame_src() {
+                return this.load_uid && `${http.defaults.baseURL}/plugins/${this.plugin.key}?${this.load_uid}`
+            },
         },
         watch: {
             active: {
-                handler (active) {
+                handler(active) {
                     if (active) {
                         setTimeout(() => {
                             this.reload_visible = true
@@ -69,50 +63,51 @@
                         this.reload_visible = false
                     }
                 },
-                immediate: true
+                immediate: true,
             },
-            codestyle: 'syncFrame'
+            codestyle: 'syncFrame',
         },
         methods: {
-            sendMessage (message) {
+            sendMessage(message) {
                 const iframe = this.$refs.iframe
                 if (iframe) {
                     iframe.contentWindow.postMessage(message, '*')
                 }
             },
-            syncFrame () {
+            syncFrame() {
                 this.sendMessage({
                     plugin: this.plugin.key,
-                    host: this.$http.defaults.baseURL,
+                    host: http.defaults.baseURL,
                     theme: this.codestyle,
-                    colors: this.$vuetify.theme.currentTheme
+                    colors: this.$vuetify.theme.current.colors,
                 })
             },
-            frame_loaded () {
+            frame_loaded() {
                 if (this.frame_src) {
                     this.loaded = true
                     this.loading = false
                     this.syncFrame()
                 }
             },
-            reload () {
+            reload() {
                 if (this.active && !this.loading) {
                     this.loading = true
                     if (this.plugin.live) {
                         this.load_uid = Date.now()
                     } else {
-                        this.$http.get('/plugins/' + this.plugin.key)
+                        http.get('/plugins/' + this.plugin.key)
                             .then(({ data, headers }) => {
                                 this.loaded = true
                                 this.json = headers['content-type'] === 'application/json'
                                 this.body = this.json ? JSON.stringify(data, null, 2) : data
-                            }).finally(() => {
+                            })
+                            .finally(() => {
                                 this.loading = false
                             })
                     }
                 }
-            }
-        }
+            },
+        },
     }
 </script>
 
@@ -126,14 +121,16 @@
 </style>
 
 <style lang="scss">
+    @use 'sass:meta';
+
     .plugin-container {
         pre {
             &.dark {
-                @import '~highlight.js/scss/night-owl';
+                @include meta.load-css('highlight.js/scss/night-owl');
             }
 
             &.light {
-                @import '~highlight.js/scss/xcode';
+                @include meta.load-css('highlight.js/scss/xcode');
             }
         }
     }

@@ -1,54 +1,60 @@
 <template>
-    <v-dialog v-model="open"
-              width="300"
-              overlay-opacity="0.1"
-              attach=".result-container"
-              content-class="columns-filter-popup"
-              scrollable
-              @keydown="keyboard">
+    <v-dialog
+        v-model="open"
+        width="300"
+        overlay-opacity="0.1"
+        attach=".result-container"
+        content-class="columns-filter-popup"
+        scrollable
+        @keydown="keyboard"
+    >
         <v-card>
             <v-card-title class="panel pa-1 px-2">
                 <v-layout>
-                    <v-flex xs1 align-self-center>
-                        <v-checkbox v-model="visible_all"
-                                    class="my-1 py-0"
-                                    dense hide-details />
-                    </v-flex>
-                    <v-flex align-self-center>
-                        <v-text-field ref="search"
-                                      v-model="search"
-                                      class="result-search ml-2"
-                                      append-icon="mdi-magnify"
-                                      background-color="controls"
-                                      autocomplete="disabled"
-                                      spellcheck="false"
-                                      dense
-                                      hide-details
-                                      autofocus
-                                      clearable />
-                    </v-flex>
+                    <v-col xs1 align-self-center>
+                        <v-checkbox v-model="visible_all" class="my-1 py-0" dense hide-details />
+                    </v-col>
+                    <v-col align-self-center>
+                        <v-text-field
+                            ref="search"
+                            v-model="search"
+                            class="result-search ml-2"
+                            append-icon="mdi-magnify"
+                            background-color="controls"
+                            autocomplete="disabled"
+                            spellcheck="false"
+                            dense
+                            hide-details
+                            autofocus
+                            clearable
+                        />
+                    </v-col>
                 </v-layout>
             </v-card-title>
 
             <v-card-text class="columns-filter-body px-2 py-2" style="max-height: 300px">
-                <template v-for="i in headers.keys()">
-                    <v-hover v-slot:default="{ hover }" :key="i">
-                        <v-layout v-show="listed[i]" class="columns-filter-item" :class="{selected: selected === i}">
-                            <v-flex xs1 align-self-center>
-                                <v-checkbox v-model="visible[i]"
-                                            class="my-0 py-1 mr-2"
-                                            dense hide-details />
-                            </v-flex>
-                            <v-flex class="ml-2 align-stretch">
+                <template v-for="i in headers.keys()" :key="i">
+                    <v-hover v-slot:default="{ hover }">
+                        <v-layout v-show="listed[i]" class="columns-filter-item" :class="{ selected: selected === i }">
+                            <v-col xs1 align-self-center>
+                                <v-checkbox v-model="visible[i]" class="my-0 py-1 mr-2" dense hide-details />
+                            </v-col>
+                            <v-col class="ml-2 align-stretch">
                                 <v-layout class="pointer noselect fill-height" @click="toggleVisible(i)">
-                                    <v-flex align-self-center v-html="listed[i]" />
+                                    <v-col align-self-center v-html="listed[i]" />
                                 </v-layout>
-                            </v-flex>
-                            <v-flex xs1 align-self-center class="ml-2">
-                                <v-btn icon x-small v-if="visible[i]" :color="hover ? 'primary' : 'transparent'" @click="gotoColumn(i)">
+                            </v-col>
+                            <v-col xs1 align-self-center class="ml-2">
+                                <v-btn
+                                    icon
+                                    x-small
+                                    v-if="visible[i]"
+                                    :color="hover ? 'primary' : 'transparent'"
+                                    @click="gotoColumn(i)"
+                                >
                                     <v-icon class="pointer">mdi-target</v-icon>
                                 </v-btn>
-                            </v-flex>
+                            </v-col>
                         </v-layout>
                     </v-hover>
                 </template>
@@ -66,30 +72,30 @@
         props: {
             value: Boolean,
             headers: Array,
-            columnsVisible: Array
+            columnsVisible: Array,
         },
         data: () => ({
             search: '',
-            selected: -1
+            selected: -1,
         }),
         computed: {
             open: {
-                get () {
+                get() {
                     return this.value
                 },
-                set (value) {
+                set(value) {
                     this.$emit('input', value)
-                }
+                },
             },
             visible_all: {
-                get () {
-                    return this.visible.every(v => v)
+                get() {
+                    return this.visible.every((v) => v)
                 },
-                set (value) {
+                set(value) {
                     this.fillVisible(value)
-                }
+                },
             },
-            visible () {
+            visible() {
                 // noinspection JSCheckFunctionSignatures
                 return new Proxy(this.columnsVisible, {
                     set: (target, index, value) => {
@@ -98,24 +104,24 @@
                             this.updateVisible(Object.assign([...target], { [index]: value }))
                         }
                         return true
-                    }
+                    },
                 })
             },
-            listed () {
+            listed() {
                 if (this.search) {
                     return this.prepared_search_headers
-                        .map(text => fuzzysort.single(this.search, text))
-                        .map(r => r && r.score > -100 && fuzzysort.highlight(r, "<b class='primary--text'>", '</b>'))
+                        .map((text) => fuzzysort.single(this.search, text))
+                        .map((r) => r && r.score > -100 && fuzzysort.highlight(r, "<b class='primary--text'>", '</b>'))
                 } else {
-                    return this.headers.map(r => r.text)
+                    return this.headers.map((r) => r.text)
                 }
             },
-            prepared_search_headers () {
-                return this.headers.map(h => fuzzysort.prepare(h.text))
-            }
+            prepared_search_headers() {
+                return this.headers.map((h) => fuzzysort.prepare(h.text))
+            },
         },
         watch: {
-            value (on) {
+            value(on) {
                 if (on) {
                     this.search = ''
                     this.selected = -1
@@ -124,31 +130,31 @@
                     })
                 }
             },
-            search () {
+            search() {
                 const i = this.selected
                 if (i >= 0 && !this.listed[i]) {
                     this.selected = -1
                 }
-            }
+            },
         },
-        created () {
+        created() {
             this.keyboard = throttle(this.keyboard, 100)
         },
         methods: {
-            updateVisible (value) {
+            updateVisible(value) {
                 this.$emit('update:columns-visible', value)
             },
-            fillVisible (value) {
+            fillVisible(value) {
                 this.updateVisible(Array(this.headers.length).fill(value))
             },
-            toggleVisible (i) {
+            toggleVisible(i) {
                 this.visible[i] = !this.visible[i]
                 this.selected = i
             },
-            gotoColumn (i) {
+            gotoColumn(i) {
                 this.$emit('goto', i - this.visible.filter((v, j) => j < i && !v).length)
             },
-            keyboard (e) {
+            keyboard(e) {
                 const ENTER = 13
                 const SPACE = 32
                 const ARROW_UP = 38
@@ -163,7 +169,9 @@
 
                 switch (key) {
                     case ENTER: {
-                        while (i <= end && !(this.listed[i] && this.visible[i])) { i++ }
+                        while (i <= end && !(this.listed[i] && this.visible[i])) {
+                            i++
+                        }
 
                         if (i >= 0 && i <= end) {
                             this.gotoColumn(i)
@@ -204,14 +212,18 @@
                             this.selected = i
 
                             requestAnimationFrame(() => {
-                                this.$vuetify.goTo('.columns-filter-item.selected', { container: '.columns-filter-body', offset: 150, duration: 200 })
+                                this.$vuetify.goTo('.columns-filter-item.selected', {
+                                    container: '.columns-filter-body',
+                                    offset: 150,
+                                    duration: 200,
+                                })
                             })
                         }
                         break
                     }
                 }
-            }
-        }
+            },
+        },
     }
 </script>
 

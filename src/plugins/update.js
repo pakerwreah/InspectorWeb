@@ -1,4 +1,4 @@
-import http from '@/plugins/http'
+import http from '@/lib/http'
 
 export default function (version) {
   return http.get('https://api.github.com/repos/pakerwreah/InspectorWeb/releases/latest')

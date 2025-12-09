@@ -24,9 +24,9 @@
                     :items="items"
                     activatable>
             <template v-slot:label="{ item, leaf }">
-                <v-flex @dblclick="!leaf && query(item.name)" class="noselect text-truncate">
+                <v-col @dblclick="!leaf && query(item.name)" class="noselect text-truncate">
                     {{ item.name }}
-                </v-flex>
+                </v-col>
             </template>
             <template v-slot:append="{ item }">
                 <span class="noselect accent--text text-lowercase pt-1 pl-2" style="font-size: 10px">

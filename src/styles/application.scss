@@ -42,7 +42,7 @@ html {
         padding-bottom: 0;
     }
 
-    .theme--dark .v-list {
+    .v-theme--dark .v-list {
         background: var(--v-controls-darken1);
     }
 
@@ -68,29 +68,25 @@ html {
         border-bottom: solid 2px var(--v-primary-base);
     }
 
-    .v-stepper__step__step {
+    .v-stepper-item__avatar {
         display: none;
     }
 
-    .v-stepper__header {
+    .v-stepper-header {
         justify-content: flex-start;
         height: $header-height;
         background-color: var(--v-controls-base);
     }
 
-    .v-stepper__label {
-        display: flex !important;
+    .v-stepper-window {
+        margin: 0;
     }
 
-    .v-stepper__content {
-        padding: 0;
+    .v-stepper-item {
+        padding-block: 0;
     }
 
-    .v-stepper__items {
-        height: calc(100% - #{$header-height});
-    }
-
-    .v-stepper, .v-stepper__content, .v-stepper__wrapper {
+    .v-stepper, .v-stepper-window, .v-stepper-window-item {
         height: 100%;
     }
 
@@ -117,7 +113,7 @@ html {
         }
     }
 
-    .theme--light {
+    .v-theme--light {
         .splitpanes.default-theme {
             .splitpanes__splitter {
                 background-color: var(--v-controls-base);
@@ -129,7 +125,7 @@ html {
         }
     }
 
-    .theme--dark {
+    .v-theme--dark {
         .splitpanes.default-theme {
             .splitpanes__pane {
                 background-color: var(--v-panel-base);
