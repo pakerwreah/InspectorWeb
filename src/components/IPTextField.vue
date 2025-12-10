@@ -4,7 +4,6 @@
         prefix="IP Address: "
         class="ip-field"
         placeholder="___.___.___.___"
-        height="28"
         :error="ip.includes(':')"
         hide-details
         variant="solo"
@@ -26,6 +25,8 @@
 
 <style lang="scss">
     .ip-field {
+        max-width: 230px;
+
         .v-field__field > * {
             min-height: 0;
             padding-block: 4px;
