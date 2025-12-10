@@ -1,7 +1,8 @@
 <template>
     <v-dialog max-width="600" v-model="open" attach>
         <v-card>
-            <DialogHeader @close="open = false" />
+            <DialogHeader title="Settings" @close="open = false" />
+
             <v-card-text class="pa-0 settings-content relative">
                 <v-row class="absolute-expand">
                     <v-col cols="4">

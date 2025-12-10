@@ -1,7 +1,8 @@
 <template>
     <v-dialog v-model="open" content-class="sql-history-popup" attach>
         <v-card class="sql-history-container">
-            <DialogHeader @close="open = false" />
+            <DialogHeader title="SQL History" @close="open = false" />
+
             <v-card-text class="pa-0 flex relative">
                 <splitpanes class="default-theme absolute-expand">
                     <pane style="min-width: 250px" size="40">
