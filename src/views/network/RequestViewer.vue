@@ -1,72 +1,61 @@
 <template>
     <div class="network-detail-container">
-        <v-expansion-panels v-if="request" :value="open" accordion>
+        <v-expansion-panels v-if="request" :value="open" color="panel" multiple variant="accordion">
             <v-expansion-panel>
-                <v-expansion-panel-header>
-                    <v-layout>
-                        <v-col align-self-center> Headers </v-col>
+                <v-expansion-panel-title>
+                    <v-row>
+                        <v-col align-self-center>Headers</v-col>
                         <v-col>
                             <v-label>
                                 <small class="pointer">{{ formatTimestamp(request.timestamp, true) }}</small>
                             </v-label>
                         </v-col>
-                    </v-layout>
-                </v-expansion-panel-header>
-                <v-expansion-panel-content>
-                    <!--suppress HtmlUnknownAttribute - don't break line inside <pre>, thanks! -->
-                    <pre :class="codestyle" v-highlightjs="details.headers"><code class="http"></code></pre>
+                    </v-row>
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                    <highlightjs :class="codestyle" :code="details.headers" language="http" :autodetect="false" />
                     <template v-if="params">
                         <v-divider class="mt-2 mb-1" />
                         <v-label>
                             <small>Parameters:</small>
                         </v-label>
-                        <!--suppress HtmlUnknownAttribute - don't break line inside <pre>, thanks! -->
-                        <pre class="ml-2" :class="codestyle" v-highlightjs="params"><code class="yaml"></code></pre>
+                        <highlightjs class="ml-2" :class="codestyle" :code="params" language="yaml" />
                     </template>
-                </v-expansion-panel-content>
+                </v-expansion-panel-text>
             </v-expansion-panel>
             <v-expansion-panel v-if="hasBody">
-                <v-expansion-panel-header>
-                    <v-layout>
-                        <v-col xs11 align-self-center> Body </v-col>
-                        <v-col class="ml-4">
-                            <v-tooltip v-if="details.large" bottom>
-                                <template v-slot:activator="{ on }">
-                                    <v-btn icon @click.stop="download" v-on="on" x-small>
-                                        <v-icon>mdi-download</v-icon>
-                                    </v-btn>
-                                </template>
-                                <span>Download</span>
-                            </v-tooltip>
-                            <v-tooltip v-else bottom>
-                                <template v-slot:activator="{ on }">
-                                    <v-btn icon @click.stop="copy" v-on="on" x-small>
-                                        <v-icon>mdi-content-copy</v-icon>
-                                    </v-btn>
-                                </template>
-                                <span>Copy</span>
-                            </v-tooltip>
+                <v-expansion-panel-title>
+                    <v-row>
+                        <v-col align-self="center">Body</v-col>
+                        <v-col cols="2">
+                            <v-btn v-if="details.large" icon size="small" @click.stop="download">
+                                <v-icon>mdi-download</v-icon>
+                                <v-tooltip location="bottom" activator="parent">Download</v-tooltip>
+                            </v-btn>
+                            <v-btn v-else icon size="small" @click.stop="copy">
+                                <v-icon>mdi-content-copy</v-icon>
+                                <v-tooltip location="bottom" activator="parent">Copy</v-tooltip>
+                            </v-btn>
                         </v-col>
-                    </v-layout>
-                </v-expansion-panel-header>
-                <v-expansion-panel-content>
-                    <!--suppress HtmlUnknownAttribute - don't break line inside <pre>, thanks! -->
-                    <pre
+                    </v-row>
+                </v-expansion-panel-title>
+                <v-expansion-panel-text>
+                    <highlightjs
                         v-if="json || html"
                         :class="codestyle"
-                        v-highlightjs="details.body"
-                    ><code :class="{json, html}"></code></pre>
-
+                        :code="details.body"
+                        :language="(json && 'json') || (html && 'html')"
+                    />
                     <v-label v-else>
                         {{ details.body }}
                     </v-label>
-                </v-expansion-panel-content>
+                </v-expansion-panel-text>
             </v-expansion-panel>
         </v-expansion-panels>
         <v-snackbar v-model="snackbar.visible" top color="success" :timeout="2000">
-            <v-col class="text-center"
-                ><h3>{{ snackbar.text }}</h3></v-col
-            >
+            <v-col class="text-center">
+                <h3>{{ snackbar.text }}</h3>
+            </v-col>
         </v-snackbar>
     </div>
 </template>
@@ -76,11 +65,15 @@
     import saveAs from 'tiny-save-as'
     import { filesize } from 'filesize'
     import { formatTimestamp } from '@/utils'
+    import { highlightjs } from '@/plugins/highlight'
+    import theme from '@/mixins/theme'
 
     export default {
         name: 'RequestViewer',
+        components: { highlightjs },
+        mixins: [theme],
         props: {
-            value: Object,
+            request: Object,
             sortParams: Boolean,
         },
         data: () => ({
@@ -93,9 +86,6 @@
             },
             codestyle() {
                 return this.dark_mode ? 'dark' : 'light'
-            },
-            request() {
-                return this.value
             },
             headers() {
                 return (this.request && this.request.headers) || {}
@@ -162,52 +152,55 @@
             this.updateDetails()
         },
         methods: {
-            updateDetails() {
+            async updateDetails() {
                 this.details = { headers: '', body: '', large: false }
                 const r = this.request
-                if (r) {
-                    const raw_headers = r.raw_headers
+                if (!r) {
+                    return
+                }
+                this.details.headers = r.raw_headers
 
-                    this.$set(this.details, 'headers', raw_headers)
-
-                    if (r.body) {
-                        if (r.body.size > 100000) {
-                            this.$set(this.details, 'large', true)
-                            this.$set(this.details, 'body', '[ Size: ' + filesize(r.body.size) + ' ]')
-                        } else {
-                            readBody(raw_headers, r.body).then((body) => {
-                                if (this.request === r) {
-                                    if (this.json || ['{', '['].includes(body[0])) {
-                                        const parsed = JSON.parse(body)
-                                        if (parsed) {
-                                            body = JSON.stringify(parsed, null, 2)
-                                        }
-                                    }
-                                    this.$set(this.details, 'body', body)
-                                }
-                            })
-                        }
+                if (!r.body) {
+                    return
+                }
+                if (r.body.size > 100000) {
+                    this.details.large = true
+                    this.details.body = '[ Size: ' + filesize(r.body.size) + ' ]'
+                    return
+                }
+                let body = await readBody(r.raw_headers, r.body)
+                // make sure we're still processing the same request
+                if (this.request !== r) {
+                    return
+                }
+                if (this.json || ['{', '['].includes(body[0])) {
+                    const parsed = JSON.parse(body)
+                    if (parsed) {
+                        body = JSON.stringify(parsed, null, 2)
                     }
                 }
+                this.details.body = body
             },
             download() {
                 saveAs(this.request.body, `${this.request.timestamp}.txt`)
             },
-            copy() {
-                readBody(this.request.raw_headers, this.request.body).then((body) => {
-                    copy(body)
-                    this.snackbar = { visible: true, text: 'Content copied successfully!' }
-                })
+            async copy() {
+                const body = await readBody(this.request.raw_headers, this.request.body)
+                copy(body)
+                this.snackbar = { visible: true, text: 'Content copied successfully!' }
             },
             formatTimestamp,
         },
     }
 
     function readBody(headers, body) {
+        if (!(body instanceof Blob)) {
+            return body
+        }
         return new Promise((resolve) => {
             const reader = new FileReader()
-            reader.onloadend = (e) => {
-                resolve(e.target.result)
+            reader.onloadend = function () {
+                resolve(this.result)
             }
             let encoding = 'utf-8'
             const match = /charset=([^;\n ]+)/.exec(headers)
@@ -246,13 +239,13 @@
         }
 
         .v-expansion-panel {
-            .v-expansion-panel-header {
+            .v-expansion-panel-title {
                 min-height: 40px !important;
                 padding: 0 12px;
             }
 
-            .v-expansion-panel-content__wrap {
-                padding: 0 12px 12px;
+            .v-expansion-panel-text__wrapper {
+                padding: 12px 14px;
             }
         }
     }

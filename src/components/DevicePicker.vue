@@ -18,7 +18,7 @@
     >
         <template v-slot:prepend-inner v-if="!selected">
             <v-col align-self-center shrink text-center>
-                <div v-if="devices.length" class="badge controls--text text">{{ devices.length }}</div>
+                <div v-if="devices.length" class="badge text-controls text">{{ devices.length }}</div>
                 <v-icon v-else dense class="neutral--text">mdi-help-circle-outline</v-icon>
             </v-col>
         </template>

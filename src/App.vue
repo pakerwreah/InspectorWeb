@@ -2,17 +2,12 @@
     <v-app>
         <v-tabs v-model="current_page" bg-color="controls">
             <v-tab v-for="(page, i) in pages" :key="i" color="primary">
-                <v-layout>
+                <v-row class="px-3">
                     {{ page.name }}
-                    <v-col
-                        v-if="page.key === 'network' && requests > 0"
-                        class="badge step-badge"
-                        align-self-center
-                        text-center
-                    >
+                    <v-col v-if="page.key === 'network' && requests > 0" class="badge step-badge">
                         {{ requests }}
                     </v-col>
-                </v-layout>
+                </v-row>
             </v-tab>
             <v-spacer></v-spacer>
             <v-btn icon class="mx-1 align-self-center" @click="settings_popup = true">
@@ -35,7 +30,7 @@
                     />
                 </v-tabs-window-item>
                 <v-tabs-window-item v-for="(plugin, i) in plugins" :key="plugin.key" :step="i + 3">
-                    <Plugin :active="current_page === i + 3" :plugin="plugin" />
+                    <Plugin :active="current_page === i + 2" :plugin="plugin" />
                 </v-tabs-window-item>
             </v-tabs-window>
         </v-main>
@@ -267,6 +262,7 @@
     }
 
     .step-badge {
+        color: rgb(var(--v-theme-text));
         position: relative;
         left: 8px;
         padding: 0 3px 0 2px !important;

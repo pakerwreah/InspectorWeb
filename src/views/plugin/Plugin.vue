@@ -1,33 +1,37 @@
 <template>
     <div class="scrollable fill-height">
         <div class="plugin-container absolute-expand overflow-y-auto pa-2">
-            <!--suppress HtmlUnknownAttribute - don't break line inside <pre>, thanks! -->
-            <pre v-if="json" :class="codestyle" v-highlightjs="body"><code class="json"></code></pre>
+            <highlightjs v-if="json" :class="codestyle" :code="body" language="json" />
 
             <div v-else-if="plugin.live" class="absolute-expand d-flex">
-                <iframe ref="iframe" class="flex" :src="frame_src" @load="frame_loaded"></iframe>
+                <iframe ref="iframe" class="flex-1-1" :src="frame_src" @load="frame_loaded"></iframe>
             </div>
 
             <div v-else v-html="body" />
         </div>
-        <v-tooltip left open-delay="1200">
-            <template v-slot:activator="{ on }">
-                <v-fab-transition hide-on-leave>
-                    <v-btn v-show="reload_visible" @click.stop="reload" v-on="on" small fab fixed right bottom>
-                        <v-icon :class="{ spin: loading }">mdi-sync</v-icon>
-                    </v-btn>
-                </v-fab-transition>
-            </template>
-            <span>Reload {{ plugin.name }}</span>
-        </v-tooltip>
+
+        <div class="floating-buttons">
+            <v-fab-transition hide-on-leave>
+                <v-fab v-show="reload_visible" @click.stop="reload" icon>
+                    <v-icon :class="{ spin: loading }">mdi-sync</v-icon>
+                    <v-tooltip location="start" activator="parent" :open-delay="1200">
+                        Reload {{ plugin.name }}
+                    </v-tooltip>
+                </v-fab>
+            </v-fab-transition>
+        </div>
     </div>
 </template>
 
 <script>
     import http from '@/lib/http'
+    import theme from '@/mixins/theme'
+    import { highlightjs } from '@/plugins/highlight'
 
     export default {
         name: 'Plugin',
+        components: { highlightjs },
+        mixins: [theme],
         props: {
             active: Boolean,
             plugin: Object,

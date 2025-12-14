@@ -50,10 +50,10 @@ html {
 
     .v-dialog {
         .v-card {
-            background-color: rgba(var(--v-theme-panel));
+            background-color: rgb(var(--v-theme-panel));
 
             .v-card-title {
-                background-color: rgba(var(--v-theme-controls));
+                background-color: rgb(var(--v-theme-controls));
             }
         }
     }
@@ -104,14 +104,9 @@ html {
     }
 
     pre code.hljs {
-        font-weight: normal;
-        padding: 0 !important;
-        background-color: inherit !important;
-        box-shadow: none;
-
-        &:before, &:after {
-            content: unset;
-        }
+        padding: 0;
+        background-color: inherit;
+        font-size: small;
     }
 
     .spin {
@@ -137,6 +132,13 @@ html {
         min-width: 16px;
         background-color: #aaaaaa88;
         padding: 0 2px;
+    }
+
+    .floating-buttons {
+        position: fixed;
+        right: 16px;
+        bottom: 32px;
+        z-index: 9999;
     }
 }
 
