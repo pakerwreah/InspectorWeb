@@ -1,5 +1,5 @@
 <template>
-    <div class="scrollable fill-height">
+    <div class="scrollable fill-height bg-panel">
         <div class="plugin-container absolute-expand overflow-y-auto pa-2">
             <highlightjs v-if="json" :class="codestyle" :code="body" language="json" />
 
@@ -27,6 +27,7 @@
     import http from '@/lib/http'
     import theme from '@/mixins/theme'
     import { highlightjs } from '@/plugins/highlight'
+    import { deepToRaw } from '@/lib/utils'
 
     export default {
         name: 'Plugin',
@@ -75,7 +76,7 @@
             sendMessage(message) {
                 const iframe = this.$refs.iframe
                 if (iframe) {
-                    iframe.contentWindow.postMessage(message, '*')
+                    iframe.contentWindow.postMessage(deepToRaw(message), '*')
                 }
             },
             syncFrame() {
