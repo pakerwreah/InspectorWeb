@@ -77,19 +77,40 @@
     </v-app>
 </template>
 
-<script>
+<script lang="ts">
     import Database from './views/database/Database.vue'
     import Network from './views/network/Network.vue'
     import Plugin from './views/plugin/Plugin.vue'
     import Settings from './views/settings/Settings.vue'
     import DevicePicker from './components/DevicePicker.vue'
     import IPTextField from './components/IPTextField.vue'
-    import { defaultsDeep, orderBy, debounce } from 'lodash'
-    import http, { cancelRequests } from './lib/http'
+    import { defaultsDeep, orderBy, debounce, uniqBy, pick } from 'lodash'
+    import http from './lib/http'
     import { defaultSettings } from './lib/settings'
     import checkUpdate from './plugins/update'
 
-    const fixed_pages = [
+    type Device = {
+        name: string
+        adapter: string
+        ip: string
+        since: number
+    }
+
+    type Release = {
+        name: string
+        url: string
+    }
+
+    type Host = {
+        ip: string
+    }
+
+    type Page = {
+        key: string
+        name: string
+    }
+
+    const fixed_pages: Page[] = [
         {
             key: 'database',
             name: 'Database',
@@ -114,20 +135,22 @@
         },
         data: () => ({
             mounted: false,
-            plugins: [],
+            plugins: [] as Page[],
             current_page: -1,
             requests: 0,
             settings_popup: false,
             settings: defaultSettings,
-            host: { ip: '' },
-            m_devices: [],
+            host: { ip: '' } as Host,
+            m_devices: [] as Device[],
             now: Date.now(),
-            release: undefined,
+            release: undefined as Release | undefined,
             show_device_picker: false,
+            tickerInterval: 0,
+            loadPluginsAbortController: new AbortController(),
         }),
         computed: {
             electron() {
-                return window.electron
+                return (window as any).electron
             },
             version() {
                 return APP_VERSION
@@ -183,37 +206,64 @@
                     const { ipcRenderer } = this.electron
                     ipcRenderer.removeAllListeners('search-devices')
                     ipcRenderer.send('search-devices', port)
-                    ipcRenderer.on('search-devices', (e, newDevice) => {
+
+                    type DeviceInfo = {
+                        type: string
+                        name: string
+                        appId: string
+                        version: string
+                    }
+
+                    type IPAddress = {
+                        ip: string
+                        adapter: string
+                    }
+
+                    type NewDevice = DeviceInfo & { addresses: IPAddress[] }
+
+                    ipcRenderer.on('search-devices', (_: void, newDevice: NewDevice) => {
                         const { addresses, ...device } = newDevice
-                        let devices = this.devices
+                        const devices = this.devices
                         const since = Date.now()
-                        const keys = ['name', 'adapter', 'ip', 'appId', 'version']
                         for (const addr of addresses) {
-                            const obj = {
+                            const obj: Device = {
                                 ...device,
                                 ...addr,
                                 since,
                             }
-                            devices = devices.filter((it) => keys.some((k) => it[k] !== obj[k]))
                             devices.push(obj)
                         }
-                        this.m_devices = orderBy(devices, keys)
+                        const keys = ['name', 'adapter', 'ip', 'appId', 'version']
+                        this.m_devices = orderBy(
+                            uniqBy(devices, (elem) => JSON.stringify(pick(elem, keys))),
+                            keys,
+                        )
                     })
                 }
             },
         },
-        created() {
-            http.defaults.baseURL = ''
-            setInterval(this.ticker, deviceTimeout)
+        beforeUnmount() {
+            clearInterval(this.tickerInterval)
         },
-        beforeMount() {
+        created() {
             if (this.electron) {
                 this.electron.ipcRenderer.removeAllListeners('search-devices')
+                this.tickerInterval = setInterval(this.ticker, deviceTimeout)
             }
 
-            this.settings = defaultsDeep(JSON.parse(localStorage.getItem('settings')), defaultSettings)
-            this.host = JSON.parse(localStorage.getItem('host')) || {}
-            this.show_device_picker = JSON.parse(localStorage.getItem('show_device_picker') || !!this.electron)
+            const getStorageItem = (key: string) => {
+                const item = localStorage.getItem(key)
+                if (item)
+                    try {
+                        return JSON.parse(item)
+                    } catch (e) {
+                        console.error(e)
+                    }
+            }
+
+            this.settings = defaultsDeep(getStorageItem('settings'), defaultSettings)
+            this.host = getStorageItem('host') ?? {}
+            this.show_device_picker = getStorageItem('show_device_picker') || !!this.electron
 
             if (this.host.ip) {
                 this.$nextTick(() => {
@@ -234,21 +284,25 @@
             ticker() {
                 this.now = Date.now()
             },
-            saveHost(host) {
+            saveHost(host: Host) {
                 http.defaults.baseURL = `http://${host.ip}:${this.settings.port}`
                 localStorage.setItem('host', JSON.stringify(host))
             },
             async loadPlugins() {
-                cancelRequests()
                 try {
-                    const { data } = await http.get('/plugins')
+                    this.loadPluginsAbortController.abort()
+                    this.loadPluginsAbortController = new AbortController()
+
+                    const { data } = await http.get('/plugins', {
+                        signal: this.loadPluginsAbortController.signal,
+                    })
                     this.plugins = data
                 } finally {
-                    const current_page = parseInt(localStorage.getItem('current_page')) || 0
+                    const current_page = parseInt(localStorage.getItem('current_page') ?? '0')
                     this.current_page = Math.min(current_page, this.pages.length - 1)
                 }
             },
-            setRequestsCount(count) {
+            setRequestsCount(count: number) {
                 this.requests = count
             },
         },

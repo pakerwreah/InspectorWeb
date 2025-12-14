@@ -57,7 +57,9 @@
             last_query: null,
         }),
         mounted() {
-            this.getDatabases()
+            this.$nextTick(() => {
+                this.getDatabases()
+            })
         },
         beforeDestroy() {
             this.m_id++
