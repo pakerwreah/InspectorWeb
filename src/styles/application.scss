@@ -70,21 +70,6 @@ html {
         overflow: auto;
         position: relative;
         border: solid 1px rgb(var(--v-theme-controls_border));
-
-        ::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
-        }
-
-        ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner {
-            background-color: rgb(var(--v-theme-controls_border));
-        }
-
-        ::-webkit-scrollbar-thumb {
-            border-radius: 10px;
-            background-color: rgb(var(--v-theme-controls));
-            border: solid 2px rgb(var(--v-theme-controls_border));
-        }
     }
 
     .splitpanes.default-theme {

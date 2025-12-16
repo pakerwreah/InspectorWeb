@@ -1,11 +1,7 @@
 <template>
     <splitpanes class="network-panel default-theme fill-height" v-on="$attrs">
-        <pane style="min-width: 250px" :size="100 - detail_size">
-            <div
-                ref="scroll"
-                class="network-container absolute-expand overflow-y-auto"
-                :class="{ 'pt-10': is_searching }"
-            >
+        <pane style="min-width: 250px" :size="100 - detail_size" ref="scroll">
+            <div class="network-container" :class="{ 'pt-10': is_searching }">
                 <v-list
                     v-if="session_list.length"
                     v-model:selected="selected"
@@ -476,7 +472,7 @@
                 }
             },
             stickyBottom() {
-                const el = this.$refs.scroll
+                const el = this.$refs.scroll.$el
                 if (el.scrollTop + el.clientHeight >= 0.98 * el.scrollHeight - 10) {
                     this.$nextTick(() => {
                         el.scroll({

@@ -15,7 +15,7 @@
             </v-btn>
         </v-tabs>
 
-        <v-main>
+        <v-main class="flex-1-1-0 overflow-hidden">
             <v-tabs-window v-model="current_page">
                 <v-tabs-window-item>
                     <Database />
@@ -43,7 +43,7 @@
                             <DevicePicker v-if="show_device_picker" v-model:value="host" :devices="devices" />
                             <IPTextField v-else v-model="host" />
                         </v-col>
-                        <v-col>
+                        <v-col cols="1">
                             <v-btn
                                 v-if="electron"
                                 style="margin: -5px 0"
@@ -57,7 +57,6 @@
                         </v-col>
                     </v-row>
                 </v-col>
-                <v-spacer />
                 <div class="align-self-center mr-2">
                     <v-fade-transition>
                         <v-row v-show="current_page === 0" class="mr-2">
@@ -88,6 +87,7 @@
     import http from './lib/http'
     import { defaultSettings } from './lib/settings'
     import checkUpdate from './plugins/update'
+    import { defineComponent } from 'vue'
 
     type Device = {
         name: string
@@ -123,7 +123,7 @@
 
     const deviceTimeout = 8000
 
-    export default {
+    export default defineComponent({
         name: 'App',
         components: {
             Database,
@@ -306,7 +306,7 @@
                 this.requests = count
             },
         },
-    }
+    })
 </script>
 
 <style scoped lang="scss">

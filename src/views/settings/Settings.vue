@@ -74,7 +74,7 @@
 </template>
 
 <script lang="ts">
-    import { type PropType } from 'vue'
+    import { defineComponent, type PropType } from 'vue'
     import { vMaska } from 'maska/vue'
     import theme from '@/mixins/theme'
     import { darkModeMatcher, type Settings } from '@/lib/settings'
@@ -83,7 +83,7 @@
     const pages = ['Theme', 'Network'] as const
     type Page = (typeof pages)[number]
 
-    export default {
+    export default defineComponent({
         name: 'Settings',
         components: { DialogHeader },
         directives: {
@@ -141,7 +141,7 @@
                 }
             },
         },
-    }
+    })
 </script>
 
 <style lang="scss" scoped>

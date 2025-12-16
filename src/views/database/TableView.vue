@@ -9,8 +9,7 @@
             :items-per-page="10"
             :sort-by="sort"
             height="100%"
-            dense
-            fixed-header
+            density="compact"
             :footer-props="{
                 'items-per-page-options': [10, 20, 30, -1],
             }"
@@ -23,16 +22,15 @@
             </template>
             <template v-if="!loading" v-slot:body.prepend>
                 <tr>
-                    <td v-for="i in headers.length" :key="i" v-show="visible[i - 1]">
+                    <td v-for="i in headers.length" :key="i" v-show="columns_visible[i - 1]">
                         <v-text-field
                             v-model="search[i - 1]"
+                            variant="solo"
                             class="result-search"
-                            append-icon="mdi-magnify"
                             background-color="controls"
                             autocomplete="disabled"
                             spellcheck="false"
                             @input="updateSearch(i - 1)"
-                            dense
                             hide-details
                         />
                     </td>
@@ -41,45 +39,56 @@
         </v-data-table>
         <div class="result-toolbar pt-1">
             <template v-for="(item, i) in toolbar_buttons" :key="i">
-                <v-tooltip right transition="slide-x-transition" open-delay="1200" content-class="px-2 py-0">
-                    <template v-slot:activator="{ on }">
-                        <v-btn v-on="on" class="mb-3" icon x-small :disabled="!headers.length" @click="item.action">
-                            <v-icon :color="item.color">{{ item.icon }}</v-icon>
-                        </v-btn>
-                    </template>
-                    <span>{{ item.tooltip }}</span>
-                </v-tooltip>
+                <v-btn icon class="mb-3" size="small" :disabled="!headers.length" @click="item.action">
+                    <v-icon :color="item.color">{{ item.icon }}</v-icon>
+                    <v-tooltip
+                        activator="parent"
+                        transition="slide-x-transition"
+                        open-delay="1200"
+                        content-class="px-2 py-0"
+                    >
+                        {{ item.tooltip }}
+                    </v-tooltip>
+                </v-btn>
             </template>
         </div>
         <ColumnsFilter
+            :headers="result?.headers ?? []"
             v-model="columns_filter_popup"
-            :headers="headers"
-            :columns-visible.sync="visible"
+            v-model:columns-visible="columns_visible"
             @goto="gotoColumn"
         />
     </div>
 </template>
 
-<script>
-    import { zipObject, get, debounce, isEqual } from 'lodash'
+<script lang="ts">
+    import { zipObject, debounce, isEqual } from 'lodash'
     import ColumnsFilter from './ColumnsFilter.vue'
+    import { defineComponent, type PropType } from 'vue'
+    import type { DataTableHeader, DataTableSortItem } from 'vuetify'
+    import type { VDataTable } from 'vuetify/components'
 
-    export default {
+    type Result = {
+        headers: string[]
+        data: any[][]
+    }
+
+    export default defineComponent({
         name: 'TableView',
         components: { ColumnsFilter },
         props: {
             sql: String,
-            result: Object,
+            result: Object as PropType<Result>,
             loading: Boolean,
         },
         data: () => ({
-            search: [],
-            search_debounced: [],
+            search: [] as string[],
+            search_debounced: [] as string[],
             columns_filter_popup: false,
-            visible: [],
-            sort: [],
-            last_headers: [],
-            scroll: 0,
+            columns_visible: [] as boolean[],
+            sort: [] as DataTableSortItem[],
+            last_headers: [] as string[],
+            scrollLeft: 0,
         }),
         computed: {
             toolbar_buttons() {
@@ -98,30 +107,50 @@
                     },
                 ]
             },
-            headers() {
-                const filter = (i) => (value) =>
-                    !(this.search_debounced[i] || '').length ||
-                    String(value).toLowerCase().includes(this.search_debounced[i].toLowerCase())
-                return this.loading
-                    ? []
-                    : get(this.result, 'headers', []).map((r, i) => ({
-                          text: r,
-                          value: i.toString(),
-                          align: this.visible[i] ? '' : ' d-none',
-                          filter: filter(i),
-                      }))
+            headers(): DataTableHeader[] {
+                if (this.loading || !this.result) {
+                    return []
+                }
+                return this.result.headers.map(
+                    (r, i): DataTableHeader => ({
+                        title: r,
+                        value: i.toString(),
+                        cellProps: {
+                            class: this.columns_visible[i] ? '' : 'd-none',
+                        },
+                        headerProps: {
+                            align: 'center',
+                            class: this.columns_visible[i] ? '' : 'd-none',
+                        },
+                        filter: (value: string) => {
+                            if (!this.search_debounced[i]?.length) {
+                                return true
+                            }
+                            return String(value).toLowerCase().includes(this.search_debounced[i].toLowerCase())
+                        },
+                    }),
+                )
             },
             items() {
-                const keys = Object.keys(get(this.result, 'headers', []))
-                return this.loading ? [] : get(this.result, 'data', []).map((r) => zipObject(keys, r))
+                if (this.loading || !this.result) {
+                    return []
+                }
+                const keys = Object.keys(this.result.headers)
+                return this.result.data.map((r) => zipObject(keys, r))
             },
             updateSearch() {
                 return debounce(
                     (i) => {
-                        this.$set(this.search_debounced, i, this.search[i])
+                        this.search_debounced[i] = this.search[i] ?? ''
                     },
                     Math.min((70 * this.items.length) / 10000, 1000),
                 )
+            },
+            dataTable() {
+                return this.$refs.dt as VDataTable
+            },
+            tableWrapper() {
+                return this.dataTable.$el.querySelector('.v-table__wrapper')
             },
         },
         watch: {
@@ -133,16 +162,14 @@
                         this.search.fill('')
                         this.search_debounced.fill('')
                         this.sort = []
-                        this.scroll = 0
+                        this.scrollLeft = 0
                     }
                     requestAnimationFrame(() => {
-                        const dt = this.$refs.dt.$el.querySelector('.v-data-table__wrapper')
-                        dt.addEventListener('scroll', this.onScroll)
-                        dt.scrollTo({ left: this.scroll })
+                        this.tableWrapper.scrollTo({ left: this.scrollLeft })
                     })
                 }
             },
-            visible(visible) {
+            visible(visible: boolean[]) {
                 visible.forEach((v, i) => {
                     if (!v) {
                         this.search[i] = ''
@@ -157,38 +184,43 @@
         mounted() {
             // hot reload aware
             this.fillVisible(true)
+
+            this.tableWrapper.addEventListener('scroll', this.onScroll)
+        },
+        beforeUnmount() {
+            this.tableWrapper.removeEventListener('scroll', this.onScroll)
         },
         methods: {
-            onScroll(e) {
+            onScroll(e: Event) {
                 if (!this.loading) {
-                    this.scroll = e.target.scrollLeft
+                    this.scrollLeft = (e.target as HTMLElement).scrollLeft
                 }
             },
-            fillVisible(value) {
+            fillVisible(value: boolean) {
                 if (this.headers) {
-                    this.visible = Array(this.headers.length).fill(value)
+                    this.columns_visible = Array(this.headers.length).fill(value)
                 }
             },
             showColumnFilter() {
                 this.columns_filter_popup = true
             },
-            gotoColumn(i) {
-                const ref = this.$refs.dt.$el
-                const active = ref.querySelector('th.primary--text')
+            gotoColumn(i: number) {
+                const ref = this.dataTable.$el
+                const active = ref.querySelector('th.text-primary')
                 if (active) {
-                    active.classList.remove('primary--text')
+                    active.classList.remove('text-primary')
                 }
-                const cols = ref.querySelectorAll('th:not(.d-none)')
-                const dt = ref.querySelector('.v-data-table__wrapper')
+                const cols = ref.querySelectorAll('th')
+                const dt = ref.querySelector('.v-table__wrapper')
                 const dt_bounds = dt.getBoundingClientRect()
                 const col_bounds = cols[i].getBoundingClientRect()
                 const start = cols[0].getBoundingClientRect().left - dt_bounds.left - 12
                 const left = col_bounds.left - dt_bounds.left - (dt_bounds.width - col_bounds.width) / 2 - start
                 dt.scrollTo({ left, behavior: 'smooth' })
-                cols[i].classList.add('primary--text')
+                cols[i].classList.add('text-primary')
             },
         },
-    }
+    })
 </script>
 
 <style lang="scss">
@@ -203,38 +235,13 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        border-right: solid 1px var(--v-controls_border-base);
+        border-right: solid 1px rgb(var(--v-theme-controls_border));
     }
 
     .result-search {
-        margin-bottom: 5px;
-
-        .v-input__slot {
-            font-size: 12px;
-            height: 22px;
-            border-radius: 5px;
-
-            input {
-                padding: 8px 0 8px 8px !important;
-            }
-
-            &::before,
-            &::after {
-                border: none !important;
-            }
-        }
-
-        .v-input__append-inner {
-            margin-top: 0 !important;
-
-            .v-input__icon {
-                height: 22px;
-
-                .v-icon {
-                    font-size: 18px;
-                    color: var(--v-controls-darken2);
-                }
-            }
+        .v-field__field > * {
+            min-height: 0;
+            padding: 0 8px;
         }
     }
 
@@ -248,58 +255,26 @@
         bottom: 0;
         top: 0;
 
-        .v-data-table__wrapper {
-            position: relative;
-
-            .no-data {
-                position: absolute;
-                top: 0;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                display: flex;
-
-                div {
-                    margin: auto;
-                }
-            }
+        th {
+            background-color: rgb(var(--v-theme-panel));
+            position: sticky;
+            top: 0;
+            z-index: 999;
         }
 
-        .v-data-footer {
-            .v-data-footer__select .v-select {
+        .v-data-table-footer {
+            margin-bottom: 12px;
+
+            .v-data-table-footer__items-per-page .v-select {
                 margin: 0 0 0 12px !important;
 
-                .v-input__slot {
-                    &::before,
-                    &::after {
-                        border: none !important;
-                    }
+                .v-field__outline {
+                    display: none;
                 }
             }
 
-            .v-data-footer__pagination {
+            .v-data-table-footer__pagination {
                 margin: 0 18px 0 12px !important;
-            }
-        }
-
-        th {
-            background-color: var(--v-panel-base) !important;
-            white-space: nowrap;
-
-            span {
-                display: inline-block;
-                width: calc(100% - 18px);
-                padding-left: 18px;
-                margin-right: 2px;
-                text-align: center !important;
-            }
-        }
-
-        tbody {
-            height: 100%;
-
-            tr:hover {
-                background: none !important;
             }
         }
     }

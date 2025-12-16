@@ -1,9 +1,9 @@
 <template>
     <div class="database-tree-container d-flex flex-column fill-height">
-        <div class="d-flex align-center">
+        <div class="d-flex align-center position-sticky top-0 bg-panel" style="z-index: 1">
             <v-select
-                class="database-picker flex-fill"
-                bg-color="panel"
+                class="database-picker"
+                bg-color="transparent"
                 variant="solo"
                 placeholder="No databases available"
                 prepend-inner-icon="mdi-database"
@@ -20,16 +20,16 @@
             </v-btn>
         </div>
 
-        <div class="d-flex flex-1-1-0 overflow-y-auto">
+        <div class="d-flex flex-fill">
             <v-treeview
                 v-if="items"
-                class="database-tree"
+                class="database-tree flex-fill"
                 density="compact"
                 bg-color="panel"
                 v-model:opened="open"
                 :items="items"
-                activatable
                 :indent="0.1"
+                items-registration="props"
             >
                 <template #title="{ item }">
                     <div @dblclick="query(item.name)" class="noselect text-truncate">{{ item.name }}</div>
@@ -167,6 +167,8 @@
     }
 
     .database-tree-container {
+        max-height: 100%;
+
         .v-list-item {
             min-height: 0;
         }
