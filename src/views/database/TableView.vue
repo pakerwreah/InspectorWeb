@@ -30,12 +30,15 @@
             loading-text="Executing query..."
             :headers="headers"
             :items="items"
-            :items-per-page="10"
             :sort-by="sort"
             density="compact"
+            :search="serialized_columns_search"
+            :custom-filter="filter"
+            :filter-keys="['0']"
             :footer-props="{
                 'items-per-page-options': [10, 20, 30, -1],
             }"
+            v-model:items-per-page="items_per_page"
         >
             <template #no-data>
                 <div class="no-data">No data available</div>
@@ -49,13 +52,13 @@
                 <tr>
                     <td v-for="i in headers.length" :key="i" v-show="columns_visible[i - 1]">
                         <v-text-field
-                            v-model="search[i - 1]"
+                            v-model="columns_search[i - 1]"
                             variant="solo"
                             class="result-search"
                             background-color="controls"
                             autocomplete="disabled"
                             spellcheck="false"
-                            @input="updateSearch(i - 1)"
+                            @input="triggerSearchDebounced()"
                             hide-details
                         />
                     </td>
@@ -66,10 +69,10 @@
 </template>
 
 <script lang="ts">
-    import { debounce, isEqual, zipObject } from 'lodash'
+    import { debounce, deburr, isEqual, zip, zipObject } from 'lodash'
     import ColumnsFilter from './ColumnsFilter.vue'
     import { defineComponent, type PropType } from 'vue'
-    import type { DataTableHeader, DataTableSortItem } from 'vuetify'
+    import type { DataTableHeader, DataTableSortItem, InternalItem } from 'vuetify'
     import type { VDataTable } from 'vuetify/components'
 
     type Result = {
@@ -87,10 +90,11 @@
             loading: Boolean,
         },
         data: () => ({
-            search: [] as string[],
-            search_debounced: [] as string[],
+            columns_search: [] as string[],
+            serialized_columns_search: '',
             columns_filter_popup: false,
             columns_visible: [] as boolean[],
+            items_per_page: 10,
             sort: [] as DataTableSortItem[],
             last_headers: [] as string[],
             scrollLeft: 0,
@@ -119,6 +123,7 @@
                 return this.result.headers.map(
                     (r, i): DataTableHeader => ({
                         title: r,
+                        key: i.toString(),
                         value: i.toString(),
                         cellProps: {
                             class: this.columns_visible[i] ? '' : 'd-none',
@@ -127,12 +132,10 @@
                             align: 'center',
                             class: this.columns_visible[i] ? '' : 'd-none',
                         },
-                        filter: (value: string) => {
-                            if (!this.search_debounced[i]?.length) {
-                                return true
-                            }
-                            return String(value).toLowerCase().includes(this.search_debounced[i].toLowerCase())
-                        },
+                        // ‼️Do not use `filter` here, it breaks the results when the headers count change. 🔮
+                        // Even if you just return true, something breaks internally when the headers count decreases.
+                        // It just shows no results, despite the fact that we clearly have results in the items array.
+                        // To work around this issue, we just trigger a "global" search and use the `custom-filter` prop.
                     }),
                 )
             },
@@ -143,13 +146,9 @@
                 const keys = Object.keys(this.result.headers)
                 return this.result.data.map((r) => zipObject(keys, r))
             },
-            updateSearch() {
-                return debounce(
-                    (i) => {
-                        this.search_debounced[i] = this.search[i] ?? ''
-                    },
-                    Math.min((70 * this.items.length) / 10000, 1000),
-                )
+            triggerSearchDebounced() {
+                const delay = Math.min((70 * this.items.length) / 10000, 1000)
+                return debounce(this.triggerSearch.bind(this), delay)
             },
             dataTable() {
                 return this.$refs.dt as VDataTable
@@ -164,9 +163,10 @@
                     if (!isEqual(result.headers, this.last_headers)) {
                         this.last_headers = result.headers
                         this.fillVisible(true)
-                        this.search.fill('')
-                        this.search_debounced.fill('')
+                        this.columns_search.fill('')
+                        this.serialized_columns_search = ''
                         this.sort = []
+                        this.items_per_page = 10
                         this.scrollLeft = 0
                     }
                     requestAnimationFrame(() => {
@@ -177,8 +177,8 @@
             visible(visible: boolean[]) {
                 visible.forEach((v, i) => {
                     if (!v) {
-                        this.search[i] = ''
-                        this.search_debounced[i] = ''
+                        this.columns_search[i] = ''
+                        this.triggerSearch()
                     }
                 })
             },
@@ -196,6 +196,27 @@
             this.tableWrapper.removeEventListener('scroll', this.onScroll)
         },
         methods: {
+            triggerSearch() {
+                this.serialized_columns_search = JSON.stringify(this.columns_search)
+            },
+            filter(_value: string, _query: string, item?: InternalItem): boolean {
+                if (!item) {
+                    return false
+                }
+                const terms = Array.from(this.columns_search).map((v) => deburr(v?.toLowerCase()))
+                const values = Object.values(item.raw)
+
+                for (const [term, value] of zip(terms, values)) {
+                    if (!term || value === undefined) {
+                        continue
+                    }
+                    const match = deburr(String(value)).toLowerCase().includes(term.toLowerCase())
+                    if (!match) {
+                        return false
+                    }
+                }
+                return true
+            },
             onScroll(e: Event) {
                 if (!this.loading) {
                     this.scrollLeft = (e.target as HTMLElement).scrollLeft
