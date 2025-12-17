@@ -2,9 +2,9 @@
     <v-app>
         <v-tabs v-model="current_page" bg-color="controls">
             <v-tab v-for="(page, i) in pages" :key="i" color="primary">
-                <v-row class="px-3">
+                <v-row class="px-3 text-none">
                     {{ page.name }}
-                    <v-col v-if="page.key === 'network' && requests > 0" class="badge step-badge">
+                    <v-col v-if="page.key === 'network' && requests > 0" class="badge tab-badge">
                         {{ requests }}
                     </v-col>
                 </v-row>
@@ -29,7 +29,7 @@
                         @requests="setRequestsCount"
                     />
                 </v-tabs-window-item>
-                <v-tabs-window-item v-for="(plugin, i) in plugins" :key="plugin.key" :step="i + 3">
+                <v-tabs-window-item v-for="(plugin, i) in plugins" :key="plugin.key">
                     <Plugin :active="current_page === i + 2" :plugin="plugin" />
                 </v-tabs-window-item>
             </v-tabs-window>
@@ -315,7 +315,7 @@
         opacity: 0.7;
     }
 
-    .step-badge {
+    .tab-badge {
         color: rgb(var(--v-theme-text));
         position: relative;
         left: 8px;

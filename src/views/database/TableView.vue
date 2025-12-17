@@ -1,26 +1,51 @@
 <template>
     <div class="result-container">
+        <div class="result-toolbar pt-1">
+            <template v-for="(item, i) in toolbar_buttons" :key="i">
+                <v-btn icon :disabled="!headers.length" @click="item.action">
+                    <v-icon :color="item.color">{{ item.icon }}</v-icon>
+                    <v-tooltip
+                        activator="parent"
+                        transition="slide-x-transition"
+                        open-delay="1000"
+                        content-class="px-2 py-0"
+                    >
+                        {{ item.tooltip }}
+                    </v-tooltip>
+                </v-btn>
+            </template>
+        </div>
+
+        <ColumnsFilter
+            :headers="result?.headers ?? []"
+            v-model="columns_filter_popup"
+            v-model:columns-visible="columns_visible"
+            @goto="gotoColumn"
+        />
+
         <v-data-table
             ref="dt"
+            class="result-table"
             :loading="loading"
             loading-text="Executing query..."
             :headers="headers"
             :items="items"
             :items-per-page="10"
             :sort-by="sort"
-            height="100%"
             density="compact"
             :footer-props="{
                 'items-per-page-options': [10, 20, 30, -1],
             }"
-            class="result-table fill-height"
         >
-            <template v-slot:no-data>
-                <div class="no-data">
-                    <div>No data available</div>
-                </div>
+            <template #no-data>
+                <div class="no-data">No data available</div>
             </template>
-            <template v-if="!loading" v-slot:body.prepend>
+
+            <template v-if="!loading" #footer.prepend>
+                <span class="flex-grow-1 px-4">{{ info }}</span>
+            </template>
+
+            <template v-if="!loading" #body.prepend>
                 <tr>
                     <td v-for="i in headers.length" :key="i" v-show="columns_visible[i - 1]">
                         <v-text-field
@@ -37,32 +62,11 @@
                 </tr>
             </template>
         </v-data-table>
-        <div class="result-toolbar pt-1">
-            <template v-for="(item, i) in toolbar_buttons" :key="i">
-                <v-btn icon class="mb-3" size="small" :disabled="!headers.length" @click="item.action">
-                    <v-icon :color="item.color">{{ item.icon }}</v-icon>
-                    <v-tooltip
-                        activator="parent"
-                        transition="slide-x-transition"
-                        open-delay="1200"
-                        content-class="px-2 py-0"
-                    >
-                        {{ item.tooltip }}
-                    </v-tooltip>
-                </v-btn>
-            </template>
-        </div>
-        <ColumnsFilter
-            :headers="result?.headers ?? []"
-            v-model="columns_filter_popup"
-            v-model:columns-visible="columns_visible"
-            @goto="gotoColumn"
-        />
     </div>
 </template>
 
 <script lang="ts">
-    import { zipObject, debounce, isEqual } from 'lodash'
+    import { debounce, isEqual, zipObject } from 'lodash'
     import ColumnsFilter from './ColumnsFilter.vue'
     import { defineComponent, type PropType } from 'vue'
     import type { DataTableHeader, DataTableSortItem } from 'vuetify'
@@ -79,6 +83,7 @@
         props: {
             sql: String,
             result: Object as PropType<Result>,
+            info: String,
             loading: Boolean,
         },
         data: () => ({
@@ -108,7 +113,7 @@
                 ]
             },
             headers(): DataTableHeader[] {
-                if (this.loading || !this.result) {
+                if (this.loading || !this.result?.headers) {
                     return []
                 }
                 return this.result.headers.map(
@@ -132,7 +137,7 @@
                 )
             },
             items() {
-                if (this.loading || !this.result) {
+                if (this.loading || !this.result?.headers) {
                     return []
                 }
                 const keys = Object.keys(this.result.headers)
@@ -224,57 +229,46 @@
 </script>
 
 <style lang="scss">
-    $toolbar-width: 25px;
-
-    .result-toolbar {
-        position: absolute;
-        left: 0;
-        bottom: 35px;
-        top: 0;
-        width: $toolbar-width;
+    .result-container {
+        height: 100%;
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        border-right: solid 1px rgb(var(--v-theme-controls_border));
-    }
 
-    .result-search {
-        .v-field__field > * {
-            min-height: 0;
-            padding: 0 8px;
-        }
-    }
-
-    .result-table {
-        background-color: unset !important;
-        display: flex;
-        flex-direction: column;
-        position: absolute;
-        left: $toolbar-width;
-        right: 0;
-        bottom: 0;
-        top: 0;
-
-        th {
-            background-color: rgb(var(--v-theme-panel));
-            position: sticky;
-            top: 0;
-            z-index: 999;
+        .result-toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+            border-right: solid 1px rgb(var(--v-theme-controls_border));
         }
 
-        .v-data-table-footer {
-            margin-bottom: 12px;
+        .result-search {
+            .v-field__field > * {
+                min-height: 0;
+                padding: 0 8px;
+            }
+        }
 
-            .v-data-table-footer__items-per-page .v-select {
-                margin: 0 0 0 12px !important;
+        .result-table {
+            height: 100%;
+            position: relative;
+            background: none;
+            min-width: 0;
 
-                .v-field__outline {
-                    display: none;
-                }
+            th {
+                background-color: rgb(var(--v-theme-panel));
+                position: sticky;
+                top: 0;
+                z-index: 999;
             }
 
-            .v-data-table-footer__pagination {
-                margin: 0 18px 0 12px !important;
+            .v-data-table-footer .v-field__outline {
+                display: none;
+            }
+
+            .no-data {
+                position: absolute;
+                inset-inline: 0;
+                padding: 12px;
             }
         }
     }

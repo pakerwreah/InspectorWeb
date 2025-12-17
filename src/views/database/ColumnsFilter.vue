@@ -158,9 +158,6 @@
                 if (opened) {
                     this.search = ''
                     this.selected = -1
-                    requestAnimationFrame(() => {
-                        this.search_field.focus()
-                    })
                 }
             },
             search() {

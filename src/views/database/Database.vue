@@ -22,10 +22,10 @@
                         v-show="loading || (!error && result)"
                         :sql="last_query"
                         :result="result"
+                        :info="info"
                         :loading="loading"
                         @reload="query"
                     />
-                    <div v-if="!error && result" class="result-info">{{ info }}</div>
                 </pane>
             </splitpanes>
         </pane>
