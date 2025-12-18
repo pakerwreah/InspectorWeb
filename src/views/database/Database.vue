@@ -1,29 +1,31 @@
 <template>
     <splitpanes class="default-theme fill-height">
         <pane style="min-width: 250px" size="15" max-size="40">
-            <TreeView :databases="databases"
-                      :currentdb="currentdb"
-                      :schema="schema"
-                      :progress="progress"
-                      @selectDB="selectDB"
-                      @query="queryTable" />
+            <TreeView
+                :databases="databases"
+                :currentdb="currentdb"
+                :schema="schema"
+                :progress="progress"
+                @selectDB="selectDB"
+                @query="queryTable"
+            />
         </pane>
         <pane size="85">
             <splitpanes horizontal @resize="resize">
                 <pane>
-                    <SqlConsole ref="console"
-                                :schema="schema"
-                                @query="query" />
+                    <SqlConsole ref="console" :schema="schema" @query="query" />
                     <v-overlay absolute :value="!schema.tables" />
                 </pane>
                 <pane v-if="loading || error || result">
                     <div v-if="error" class="error--text ma-2">{{ error }}</div>
-                    <TableView v-show="loading || (!error && result)"
-                               :sql="last_query"
-                               :result="result"
-                               :loading="loading"
-                               @reload="query" />
-                    <div v-if="!error && result" class="result-info">{{ info }}</div>
+                    <TableView
+                        v-show="loading || (!error && result)"
+                        :sql="last_query"
+                        :result="result"
+                        :info="info"
+                        :loading="loading"
+                        @reload="query"
+                    />
                 </pane>
             </splitpanes>
         </pane>
@@ -33,10 +35,11 @@
 <script>
     import { get } from 'lodash'
     import { Splitpanes, Pane } from 'splitpanes'
-    import SqlConsole from './SqlConsole'
-    import TableView from './TableView'
-    import TreeView from './TreeView'
+    import SqlConsole from './SqlConsole.vue'
+    import TableView from './TableView.vue'
+    import TreeView from './TreeView.vue'
     import { sleep, formatDuration } from '@/utils'
+    import http from '@/lib/http'
 
     export default {
         name: 'Database',
@@ -51,29 +54,31 @@
             error: null,
             loading: false,
             info: '',
-            last_query: null
+            last_query: null,
         }),
-        mounted () {
-            this.getDatabases()
+        mounted() {
+            this.$nextTick(() => {
+                this.getDatabases()
+            })
         },
-        beforeDestroy () {
+        beforeDestroy() {
             this.m_id++
         },
         methods: {
-            resize () {
+            resize() {
                 this.$refs.console.$emit('resize')
             },
-            queryTable (table) {
+            queryTable(table) {
                 this.query(`SELECT * FROM ${table}`)
             },
-            async query (sql, script) {
+            async query(sql, script) {
                 if (this.loading) return
 
                 this.error = null
                 this.loading = true
                 this.info = ''
                 try {
-                    this.result = (await this.$http.post('/database/' + (script ? 'execute' : 'query'), sql)).data
+                    this.result = (await http.post('/database/' + (script ? 'execute' : 'query'), sql)).data
 
                     this.last_query = sql
 
@@ -81,7 +86,7 @@
 
                     this.info = 'Runtime: ' + formatDuration(this.result.duration)
 
-                    if (/(^|\s)(create|alter|drop)\s/ig.test(sql)) {
+                    if (/(^|\s)(create|alter|drop)\s/gi.test(sql)) {
                         await this.loadSchema(this.m_id)
                     }
 
@@ -89,22 +94,22 @@
 
                     sql = sql.trim()
 
-                    const item = history.find(it => it.sql === sql) || { sql }
+                    const item = history.find((it) => it.sql === sql) || { sql }
 
                     item.timestamp = new Date().getTime()
 
-                    history = history.filter(it => it.sql !== sql) // remove current element (if exists)
+                    history = history.filter((it) => it.sql !== sql) // remove current element (if exists)
 
-                    const favorites = history.filter(it => it.favorite)
+                    const favorites = history.filter((it) => it.favorite)
 
                     history = history
-                        .filter(it => !it.favorite) // remove favorites
+                        .filter((it) => !it.favorite) // remove favorites
                         .slice(0, 99) // truncate tail
                         .concat(favorites) // re-add favorites
 
                     history.unshift(item) // add current element
 
-                    history.sort((a, b) => (a.timestamp < b.timestamp) ? 1 : -1)
+                    history.sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1))
 
                     localStorage.setItem('sql_history', JSON.stringify(history))
                 } catch (error) {
@@ -112,17 +117,17 @@
                 }
                 this.loading = false
             },
-            shouldRetry (error) {
+            shouldRetry(error) {
                 return ![400, 500].includes(get(error, 'response.status', 500))
             },
-            async getDatabases () {
+            async getDatabases() {
                 const m_id = this.m_id
                 while (m_id === this.m_id) {
-                    if (this.$http.defaults.baseURL) {
+                    if (http.defaults.baseURL) {
                         try {
                             this.error = null
                             this.progress = -1
-                            const r = await this.$http.get('/database/list')
+                            const r = await http.get('/database/list')
                             this.databases = r.data.databases
                             this.currentdb = r.data.current
                             if (this.databases.length) {
@@ -142,7 +147,7 @@
                     await sleep(3000)
                 }
             },
-            async selectDB (index) {
+            async selectDB(index) {
                 if (index < 0) {
                     return this.getDatabases().catch(() => false)
                 }
@@ -153,7 +158,7 @@
                         this.error = null
                         this.progress = -1
                         this.schema = {}
-                        await this.$http.put('/database/current/' + index)
+                        await http.put('/database/current/' + index)
                         this.currentdb = index
                         await this.loadSchema(m_id)
                         return
@@ -171,7 +176,7 @@
                     }
                 }
             },
-            async getTables () {
+            async getTables() {
                 // noinspection SqlResolve
                 const sql_tables = `
                                 SELECT name
@@ -180,42 +185,42 @@
                                 AND name NOT IN ('android_metadata', 'sqlite_sequence')
                                 ORDER BY name
                             `
-                const r = await this.$http.post('/database/query', sql_tables)
+                const r = await http.post('/database/query', sql_tables)
 
-                return r.data.data.map(d => d[0])
+                return r.data.data.map((d) => d[0])
             },
-            async getColumns (table) {
+            async getColumns(table) {
                 const sql_columns = `pragma table_info(${table})`
-                const r = await this.$http.post('/database/query', sql_columns)
+                const r = await http.post('/database/query', sql_columns)
                 const cols = r.data.data
-                const idx = name => r.data.headers.indexOf(name)
+                const idx = (name) => r.data.headers.indexOf(name)
                 const columns = {}
                 for (const c of cols) {
                     columns[c[idx('name')]] = {
                         type: c[idx('type')],
                         notnull: !!c[idx('notnull')],
                         dflt_value: c[idx('dflt_value')],
-                        pk: !!c[idx('pk')]
+                        pk: !!c[idx('pk')],
                     }
                 }
                 return columns
             },
-            async getForeignKeys (table) {
+            async getForeignKeys(table) {
                 const sql_columns = `pragma foreign_key_list(${table})`
-                const r = await this.$http.post('/database/query', sql_columns)
+                const r = await http.post('/database/query', sql_columns)
                 const cols = r.data.data
-                const idx = name => r.data.headers.indexOf(name)
+                const idx = (name) => r.data.headers.indexOf(name)
                 const foreign_keys = []
                 for (const c of cols) {
                     foreign_keys.push({
                         from: c[idx('from')],
                         table: c[idx('table')],
-                        to: c[idx('to')]
+                        to: c[idx('to')],
                     })
                 }
                 return foreign_keys
             },
-            async loadTable (m_id, schema, table) {
+            async loadTable(m_id, schema, table) {
                 const max_tries = 3
                 for (let tries = 0; m_id === this.m_id; tries++) {
                     try {
@@ -234,7 +239,7 @@
                     }
                 }
             },
-            async loadSchema (m_id) {
+            async loadSchema(m_id) {
                 const schema = { tables: {} }
 
                 this.progress = 0
@@ -247,7 +252,7 @@
                             await this.loadTable(m_id, schema, table)
 
                             if (i % 3 === 0) {
-                                const progress = 100 * (parseInt(i) + 1) / tables.length
+                                const progress = (100 * (parseInt(i) + 1)) / tables.length
                                 this.progress = Math.round(progress)
                             }
                         }
@@ -267,8 +272,8 @@
                         }
                     }
                 }
-            }
-        }
+            },
+        },
     }
 </script>
 

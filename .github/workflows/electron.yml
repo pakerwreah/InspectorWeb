@@ -1,8 +1,6 @@
 name: Electron CI
 
-on:
-  release:
-    types: [ published ]
+on: [ workflow_dispatch ]
 
 jobs:
   build:

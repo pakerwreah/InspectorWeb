@@ -1,275 +1,295 @@
 <template>
     <div class="result-container">
-        <v-data-table
-                ref="dt"
-                :loading="loading"
-                loading-text="Executing query..."
-                :headers="headers"
-                :items="items"
-                :items-per-page="10"
-                :sort-by="sort"
-                height="100%"
-                dense
-                fixed-header
-                :footer-props="{
-                    'items-per-page-options': [10, 20, 30, -1]
-                }"
-                class="result-table fill-height">
-            <template v-slot:no-data>
-                <div class="no-data">
-                    <div>No data available</div>
-                </div>
+        <div class="result-toolbar pt-1">
+            <template v-for="(item, i) in toolbar_buttons" :key="i">
+                <v-btn icon :disabled="!headers.length" @click="item.action">
+                    <v-icon :color="item.color">{{ item.icon }}</v-icon>
+                    <v-tooltip
+                        activator="parent"
+                        transition="slide-x-transition"
+                        open-delay="1000"
+                        content-class="px-2 py-0"
+                    >
+                        {{ item.tooltip }}
+                    </v-tooltip>
+                </v-btn>
             </template>
-            <template v-if="!loading" v-slot:body.prepend>
+        </div>
+
+        <ColumnsFilter
+            :headers="result?.headers ?? []"
+            v-model="columns_filter_popup"
+            v-model:columns-visible="columns_visible"
+            @goto="gotoColumn"
+        />
+
+        <v-data-table
+            ref="dt"
+            class="result-table"
+            :loading="loading"
+            loading-text="Executing query..."
+            :headers="headers"
+            :items="items"
+            :sort-by="sort"
+            density="compact"
+            :search="serialized_columns_search"
+            :custom-filter="filter"
+            :filter-keys="['0']"
+            :footer-props="{
+                'items-per-page-options': [10, 20, 30, -1],
+            }"
+            v-model:items-per-page="items_per_page"
+        >
+            <template #no-data>
+                <div class="no-data">No data available</div>
+            </template>
+
+            <template v-if="!loading" #footer.prepend>
+                <span class="flex-grow-1 px-4">{{ info }}</span>
+            </template>
+
+            <template v-if="!loading" #body.prepend>
                 <tr>
-                    <td v-for="i in headers.length" :key="i" v-show="visible[i-1]">
-                        <v-text-field v-model="search[i-1]"
-                                      class="result-search"
-                                      append-icon="mdi-magnify"
-                                      background-color="controls"
-                                      autocomplete="disabled"
-                                      spellcheck="false"
-                                      @input="updateSearch(i-1)"
-                                      dense hide-details />
+                    <td v-for="i in headers.length" :key="i" v-show="columns_visible[i - 1]">
+                        <v-text-field
+                            v-model="columns_search[i - 1]"
+                            variant="solo"
+                            class="result-search"
+                            background-color="controls"
+                            autocomplete="disabled"
+                            spellcheck="false"
+                            @input="triggerSearchDebounced()"
+                            hide-details
+                        />
                     </td>
                 </tr>
             </template>
         </v-data-table>
-        <div class="result-toolbar pt-1">
-            <template v-for="(item, i) in toolbar_buttons">
-                <v-tooltip :key="i" right transition="slide-x-transition" open-delay="1200" content-class="px-2 py-0">
-                    <template v-slot:activator="{ on }">
-                        <v-btn v-on="on" class="mb-3" icon x-small :disabled="!headers.length" @click="item.action">
-                            <v-icon :color="item.color">{{ item.icon }}</v-icon>
-                        </v-btn>
-                    </template>
-                    <span>{{ item.tooltip }}</span>
-                </v-tooltip>
-            </template>
-        </div>
-        <ColumnsFilter v-model="columns_filter_popup"
-                       :headers="headers"
-                       :columns-visible.sync="visible"
-                       @goto="gotoColumn" />
     </div>
 </template>
 
-<script>
-    import { zipObject, get, debounce, isEqual } from 'lodash'
-    import ColumnsFilter from './ColumnsFilter'
+<script lang="ts">
+    import { debounce, deburr, isEqual, zip, zipObject } from 'lodash'
+    import ColumnsFilter from './ColumnsFilter.vue'
+    import { defineComponent, type PropType } from 'vue'
+    import type { DataTableHeader, DataTableSortItem, InternalItem } from 'vuetify'
+    import type { VDataTable } from 'vuetify/components'
 
-    export default {
+    type Result = {
+        headers: string[]
+        data: any[][]
+    }
+
+    export default defineComponent({
         name: 'TableView',
         components: { ColumnsFilter },
         props: {
             sql: String,
-            result: Object,
-            loading: Boolean
+            result: Object as PropType<Result>,
+            info: String,
+            loading: Boolean,
         },
         data: () => ({
-            search: [],
-            search_debounced: [],
+            columns_search: [] as string[],
+            serialized_columns_search: '',
             columns_filter_popup: false,
-            visible: [],
-            sort: [],
-            last_headers: [],
-            scroll: 0
+            columns_visible: [] as boolean[],
+            items_per_page: 10,
+            sort: [] as DataTableSortItem[],
+            last_headers: [] as string[],
+            scrollLeft: 0,
         }),
         computed: {
-            toolbar_buttons () {
+            toolbar_buttons() {
                 return [
-                    { icon: 'mdi-table-row-remove', color: 'neutral', tooltip: 'Filter columns', action: () => this.showColumnFilter() },
-                    { icon: 'mdi-sync', color: 'primary', tooltip: 'Reload', action: () => this.$emit('reload', this.sql) }
+                    {
+                        icon: 'mdi-table-row-remove',
+                        color: 'neutral',
+                        tooltip: 'Filter columns',
+                        action: () => this.showColumnFilter(),
+                    },
+                    {
+                        icon: 'mdi-sync',
+                        color: 'primary',
+                        tooltip: 'Reload',
+                        action: () => this.$emit('reload', this.sql),
+                    },
                 ]
             },
-            headers () {
-                const filter = i => value => !(this.search_debounced[i] || '').length || String(value).toLowerCase().includes(this.search_debounced[i].toLowerCase())
-                return this.loading ? [] : get(this.result, 'headers', []).map((r, i) => ({ text: r, value: i.toString(), align: this.visible[i] ? '' : ' d-none', filter: filter(i) }))
+            headers(): DataTableHeader[] {
+                if (this.loading || !this.result?.headers) {
+                    return []
+                }
+                return this.result.headers.map(
+                    (r, i): DataTableHeader => ({
+                        title: r,
+                        key: i.toString(),
+                        value: i.toString(),
+                        cellProps: {
+                            class: this.columns_visible[i] ? '' : 'd-none',
+                        },
+                        headerProps: {
+                            align: 'center',
+                            class: this.columns_visible[i] ? '' : 'd-none',
+                        },
+                        // ‼️Do not use `filter` here, it breaks the results when the headers count change. 🔮
+                        // Even if you just return true, something breaks internally when the headers count decreases.
+                        // It just shows no results, despite the fact that we clearly have results in the items array.
+                        // To work around this issue, we just trigger a "global" search and use the `custom-filter` prop.
+                    }),
+                )
             },
-            items () {
-                const keys = Object.keys(get(this.result, 'headers', []))
-                return this.loading ? [] : get(this.result, 'data', []).map(r => zipObject(keys, r))
+            items() {
+                if (this.loading || !this.result?.headers) {
+                    return []
+                }
+                const keys = Object.keys(this.result.headers)
+                return this.result.data.map((r) => zipObject(keys, r))
             },
-            updateSearch () {
-                return debounce(i => {
-                    this.$set(this.search_debounced, i, this.search[i])
-                }, Math.min(70 * this.items.length / 10000, 1000))
-            }
+            triggerSearchDebounced() {
+                const delay = Math.min((70 * this.items.length) / 10000, 1000)
+                return debounce(this.triggerSearch.bind(this), delay)
+            },
+            dataTable() {
+                return this.$refs.dt as VDataTable
+            },
+            tableWrapper() {
+                return this.dataTable.$el.querySelector('.v-table__wrapper')
+            },
         },
         watch: {
-            result (result) {
+            result(result) {
                 if (result) {
                     if (!isEqual(result.headers, this.last_headers)) {
                         this.last_headers = result.headers
                         this.fillVisible(true)
-                        this.search.fill('')
-                        this.search_debounced.fill('')
+                        this.columns_search.fill('')
+                        this.serialized_columns_search = ''
                         this.sort = []
-                        this.scroll = 0
+                        this.items_per_page = 10
+                        this.scrollLeft = 0
                     }
                     requestAnimationFrame(() => {
-                        const dt = this.$refs.dt.$el.querySelector('.v-data-table__wrapper')
-                        dt.addEventListener('scroll', this.onScroll)
-                        dt.scrollTo({ left: this.scroll })
+                        this.tableWrapper.scrollTo({ left: this.scrollLeft })
                     })
                 }
             },
-            visible (visible) {
+            visible(visible: boolean[]) {
                 visible.forEach((v, i) => {
                     if (!v) {
-                        this.search[i] = ''
-                        this.search_debounced[i] = ''
+                        this.columns_search[i] = ''
+                        this.triggerSearch()
                     }
                 })
-            }
+            },
         },
-        created () {
+        created() {
             this.onScroll = this.onScroll.bind(this)
         },
-        mounted () {
+        mounted() {
             // hot reload aware
             this.fillVisible(true)
+
+            this.tableWrapper.addEventListener('scroll', this.onScroll)
+        },
+        beforeUnmount() {
+            this.tableWrapper.removeEventListener('scroll', this.onScroll)
         },
         methods: {
-            onScroll (e) {
+            triggerSearch() {
+                this.serialized_columns_search = JSON.stringify(this.columns_search)
+            },
+            filter(_value: string, _query: string, item?: InternalItem): boolean {
+                if (!item) {
+                    return false
+                }
+                const terms = Array.from(this.columns_search).map((v) => deburr(v?.toLowerCase()))
+                const values = Object.values(item.raw)
+
+                for (const [term, value] of zip(terms, values)) {
+                    if (!term || value === undefined) {
+                        continue
+                    }
+                    const match = deburr(String(value)).toLowerCase().includes(term.toLowerCase())
+                    if (!match) {
+                        return false
+                    }
+                }
+                return true
+            },
+            onScroll(e: Event) {
                 if (!this.loading) {
-                    this.scroll = e.target.scrollLeft
+                    this.scrollLeft = (e.target as HTMLElement).scrollLeft
                 }
             },
-            fillVisible (value) {
+            fillVisible(value: boolean) {
                 if (this.headers) {
-                    this.visible = Array(this.headers.length).fill(value)
+                    this.columns_visible = Array(this.headers.length).fill(value)
                 }
             },
-            showColumnFilter () {
+            showColumnFilter() {
                 this.columns_filter_popup = true
             },
-            gotoColumn (i) {
-                const ref = this.$refs.dt.$el
-                const active = ref.querySelector('th.primary--text')
+            gotoColumn(i: number) {
+                const ref = this.dataTable.$el
+                const active = ref.querySelector('th.text-primary')
                 if (active) {
-                    active.classList.remove('primary--text')
+                    active.classList.remove('text-primary')
                 }
-                const cols = ref.querySelectorAll('th:not(.d-none)')
-                const dt = ref.querySelector('.v-data-table__wrapper')
+                const cols = ref.querySelectorAll('th')
+                const dt = ref.querySelector('.v-table__wrapper')
                 const dt_bounds = dt.getBoundingClientRect()
                 const col_bounds = cols[i].getBoundingClientRect()
                 const start = cols[0].getBoundingClientRect().left - dt_bounds.left - 12
                 const left = col_bounds.left - dt_bounds.left - (dt_bounds.width - col_bounds.width) / 2 - start
                 dt.scrollTo({ left, behavior: 'smooth' })
-                cols[i].classList.add('primary--text')
-            }
-        }
-    }
+                cols[i].classList.add('text-primary')
+            },
+        },
+    })
 </script>
 
 <style lang="scss">
-    $toolbar-width: 25px;
-
-    .result-toolbar {
-        position: absolute;
-        left: 0;
-        bottom: 35px;
-        top: 0;
-        width: $toolbar-width;
+    .result-container {
+        height: 100%;
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        border-right: solid 1px var(--v-controls_border-base);
-    }
 
-    .result-search {
-        margin-bottom: 5px;
+        .result-toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+            border-right: solid 1px rgb(var(--v-theme-controls_border));
+        }
 
-        .v-input__slot {
-            font-size: 12px;
-            height: 22px;
-            border-radius: 5px;
-
-            input {
-                padding: 8px 0 8px 8px !important;
-            }
-
-            &::before, &::after {
-                border: none !important;
+        .result-search {
+            .v-field__field > * {
+                min-height: 0;
+                padding: 0 8px;
             }
         }
 
-        .v-input__append-inner {
-            margin-top: 0 !important;
-
-            .v-input__icon {
-                height: 22px;
-
-                .v-icon {
-                    font-size: 18px;
-                    color: var(--v-controls-darken2);
-                }
-            }
-        }
-    }
-
-    .result-table {
-        background-color: unset !important;
-        display: flex;
-        flex-direction: column;
-        position: absolute;
-        left: $toolbar-width;
-        right: 0;
-        bottom: 0;
-        top: 0;
-
-        .v-data-table__wrapper {
+        .result-table {
+            height: 100%;
             position: relative;
+            background: none;
+            min-width: 0;
+
+            th {
+                background-color: rgb(var(--v-theme-panel));
+                position: sticky;
+                top: 0;
+                z-index: 999;
+            }
+
+            .v-data-table-footer .v-field__outline {
+                display: none;
+            }
 
             .no-data {
                 position: absolute;
-                top: 0;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                display: flex;
-
-                div {
-                    margin: auto;
-                }
-            }
-        }
-
-        .v-data-footer {
-            .v-data-footer__select .v-select {
-                margin: 0 0 0 12px !important;
-
-                .v-input__slot {
-                    &::before, &::after {
-                        border: none !important;
-                    }
-                }
-            }
-
-            .v-data-footer__pagination {
-                margin: 0 18px 0 12px !important;
-            }
-        }
-
-        th {
-            background-color: var(--v-panel-base) !important;
-            white-space: nowrap;
-
-            span {
-                display: inline-block;
-                width: calc(100% - 18px);
-                padding-left: 18px;
-                margin-right: 2px;
-                text-align: center !important;
-            }
-        }
-
-        tbody {
-            height: 100%;
-
-            tr:hover {
-                background: none !important;
+                inset-inline: 0;
+                padding: 12px;
             }
         }
     }

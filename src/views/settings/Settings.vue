@@ -1,130 +1,147 @@
 <template>
-    <v-dialog max-width="600" v-model="open">
+    <v-dialog max-width="600" v-model="open" attach>
         <v-card>
-            <v-card-title class="pa-1">
-                <v-layout class="text-center">
-                    <v-flex>Settings</v-flex>
-                </v-layout>
-                <v-btn color="neutral"
-                       @click="open = false"
-                       small icon absolute right>
-                    <v-icon small>mdi-close</v-icon>
-                </v-btn>
-            </v-card-title>
-            <v-divider light />
+            <DialogHeader title="Settings" @close="open = false" />
+
             <v-card-text class="pa-0 settings-content relative">
-                <v-layout class="absolute-expand">
-                    <v-flex xs3>
-                        <v-list class="pt-0 fill-height" color="controls">
-                            <v-list-item-group v-model="selected" mandatory>
-                                <v-list-item v-for="page in pages" :key="page">
-                                    <v-list-item-content>
-                                        <v-list-item-title>{{ page }}</v-list-item-title>
-                                    </v-list-item-content>
-                                </v-list-item>
-                            </v-list-item-group>
-                        </v-list>
-                    </v-flex>
-                    <v-flex class="panel px-5">
-                        <v-container v-if="selected === 0">
-                            <v-radio-group v-model="settings.dark_mode" row>
-                                <v-radio label="Light" value="light" on-icon="mdi-white-balance-sunny" />
-                                <v-spacer />
-                                <v-radio label="Dark" value="dark" on-icon="mdi-weather-night" />
-                                <v-spacer />
-                                <v-radio v-if="supportsThemeDetection" label="Automatic" value="auto" on-icon="mdi-theme-light-dark" />
+                <v-row class="absolute-expand">
+                    <v-col cols="4">
+                        <v-list v-model:selected="selected" :items="pages" mandatory class="pt-0 fill-height" />
+                    </v-col>
+                    <v-col>
+                        <v-container v-if="selected[0] === 'Theme'">
+                            <v-radio-group v-model="settings.dark_mode" inline color="accent">
+                                <v-radio
+                                    label="Light"
+                                    value="light"
+                                    true-icon="mdi-white-balance-sunny"
+                                    class="flex-fill"
+                                />
+                                <v-radio label="Dark" value="dark" true-icon="mdi-weather-night" class="flex-fill" />
+                                <v-radio
+                                    v-if="supportsThemeDetection"
+                                    label="Automatic"
+                                    value="auto"
+                                    true-icon="mdi-theme-light-dark"
+                                    class="flex-fill"
+                                />
                             </v-radio-group>
                         </v-container>
-                        <v-container v-if="selected === 1">
-                            <v-switch v-model="settings.network.sleep" label="Disconnect when Network is not selected" hide-details />
-                            <v-flex offset-xs1>
+                        <v-container v-if="selected[0] === 'Network'">
+                            <v-switch
+                                v-model="settings.network.sleep"
+                                label="Disconnect when Network is not selected"
+                                color="accent"
+                                hide-details
+                            />
+                            <v-col offset-xs1>
                                 <small>(This helps to prevent unnecessary memory and cpu usage)</small>
-                            </v-flex>
-                            <v-switch v-model="settings.network.sort_params" label="Sort request parameters" hide-details />
+                            </v-col>
+                            <v-switch
+                                v-model="settings.network.sort_params"
+                                label="Sort request parameters"
+                                color="accent"
+                                hide-details
+                            />
                             <v-row class="mt-2">
-                                <v-col cols="3">
-                                    <v-text-field
-                                            label="Port"
-                                            v-model="settings.port"
-                                            v-mask="'#####'"
-                                            hide-details />
+                                <v-col>
+                                    <v-text-field label="Port" v-model="settings.port" v-mask="'#####'" hide-details />
                                 </v-col>
-                                <v-col cols="4">
+                                <v-col>
                                     <v-text-field
-                                            label="Clear requests after"
-                                            v-model="settings.network.limit"
-                                            v-mask="'#####'"
-                                            hide-details />
+                                        label="Clear requests after"
+                                        v-model="settings.network.limit"
+                                        v-mask="'#####'"
+                                        hide-details
+                                    />
                                 </v-col>
                             </v-row>
                             <v-row>
                                 <v-col>
                                     <v-text-field
-                                            label="Adapter blacklist"
-                                            v-model="settings.adapter_blacklist"
-                                            hide-details />
+                                        label="Adapter blacklist"
+                                        v-model="settings.adapter_blacklist"
+                                        hide-details
+                                    />
                                 </v-col>
                             </v-row>
                         </v-container>
-                    </v-flex>
-                </v-layout>
+                    </v-col>
+                </v-row>
             </v-card-text>
         </v-card>
     </v-dialog>
 </template>
 
-<script>
-    import { darkModeMatcher } from './utils'
+<script lang="ts">
+    import { defineComponent, type PropType } from 'vue'
+    import { vMaska } from 'maska/vue'
+    import theme from '@/mixins/theme'
+    import { darkModeMatcher, type Settings } from '@/lib/settings'
+    import DialogHeader from '@/components/DialogHeader.vue'
 
-    export default {
+    const pages = ['Theme', 'Network'] as const
+    type Page = (typeof pages)[number]
+
+    export default defineComponent({
         name: 'Settings',
+        components: { DialogHeader },
+        directives: {
+            mask: vMaska,
+        },
+        mixins: [theme],
         props: {
-            value: Boolean,
-            settings: Object
+            modelValue: Boolean,
+            settings: {
+                type: Object as PropType<Settings>,
+                required: true,
+            },
         },
         data: () => ({
-            selected: 0,
-            pages: ['Theme', 'Network']
+            selected: [pages[0]] as Page[],
         }),
         computed: {
             open: {
-                get () {
-                    return this.value
+                get() {
+                    return this.modelValue
                 },
-                set (value) {
-                    this.$emit('input', value)
-                }
+                set(value: boolean) {
+                    this.$emit('update:modelValue', value)
+                },
             },
-            supportsThemeDetection () {
+            supportsThemeDetection() {
                 return !!darkModeMatcher
-            }
+            },
+            pages() {
+                return pages
+            },
         },
         watch: {
             'settings.dark_mode': {
-                handler (value) {
+                handler(value) {
                     if (value === 'auto') {
-                        this.dark_mode = darkModeMatcher.matches
+                        this.dark_mode = !!darkModeMatcher?.matches
                     } else {
                         this.dark_mode = value === 'dark'
                     }
                 },
-                immediate: true
-            }
+                immediate: true,
+            },
         },
-        mounted () {
-            darkModeMatcher?.addEventListener('change', this.darkModeObserver)
+        mounted() {
+            darkModeMatcher?.addEventListener('change', (e) => this.darkModeObserver(e))
         },
-        beforeDestroy () {
-            darkModeMatcher?.removeEventListener('change', this.darkModeObserver)
+        beforeUnmount() {
+            darkModeMatcher?.removeEventListener('change', (e) => this.darkModeObserver(e))
         },
         methods: {
-            darkModeObserver (e) {
+            darkModeObserver(e: MediaQueryListEvent) {
                 if (this.settings.dark_mode === 'auto') {
                     this.dark_mode = e.matches
                 }
-            }
-        }
-    }
+            },
+        },
+    })
 </script>
 
 <style lang="scss" scoped>
