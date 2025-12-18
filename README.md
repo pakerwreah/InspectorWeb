@@ -1,7 +1,7 @@
 # InspectorWeb
 [![release](https://img.shields.io/github/v/release/pakerwreah/InspectorWeb)](https://github.com/pakerwreah/InspectorWeb/releases/latest)
-[![vue](https://img.shields.io/badge/Vue.js-2.6-brightgreen.svg?logo=vue.js)](https://vuejs.org)
-[![vuetify](https://img.shields.io/badge/Vuetify-2.1-4695EF.svg?logo=vuetify&logoColor=5cbbf6)](https://vuetifyjs.com)
+[![vue](https://img.shields.io/badge/Vue.js-3.5-brightgreen.svg?logo=vue.js)](https://vuejs.org)
+[![vuetify](https://img.shields.io/badge/Vuetify-3.11-4695EF.svg?logo=vuetify&logoColor=5cbbf6)](https://vuetifyjs.com)
 
 ### Web interface for the Inspector project.
 
