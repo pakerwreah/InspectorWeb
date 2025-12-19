@@ -37,25 +37,14 @@
 
         <v-footer app color="controls">
             <v-row>
-                <v-col>
-                    <v-row>
-                        <v-col>
-                            <DevicePicker v-if="show_device_picker" v-model:value="host" :devices="devices" />
-                            <IPTextField v-else v-model="host" />
-                        </v-col>
-                        <v-col cols="1">
-                            <v-btn
-                                v-if="electron"
-                                style="margin: -5px 0"
-                                fab
-                                x-small
-                                icon
-                                @click="show_device_picker = !show_device_picker"
-                            >
-                                <v-icon v-text="show_device_picker ? 'mdi-pencil' : 'mdi-radar'" />
-                            </v-btn>
-                        </v-col>
-                    </v-row>
+                <v-col class="d-flex flex-row align-center ga-2">
+                    <div class="flex-shrink-1">
+                        <DevicePicker v-if="show_device_picker" v-model:host="host" :settings="settings" />
+                        <IPTextField v-else v-model="host" />
+                    </div>
+                    <v-btn v-if="electron" size="small" icon @click="show_device_picker = !show_device_picker">
+                        <v-icon>{{ show_device_picker ? 'mdi-pencil' : 'mdi-radar' }}</v-icon>
+                    </v-btn>
                 </v-col>
                 <div class="align-self-center mr-2">
                     <v-fade-transition>
@@ -83,26 +72,17 @@
     import Settings from './views/settings/Settings.vue'
     import DevicePicker from './components/DevicePicker.vue'
     import IPTextField from './components/IPTextField.vue'
-    import { defaultsDeep, orderBy, debounce, uniqBy, pick } from 'lodash'
+    import { defaultsDeep, debounce } from 'lodash'
     import http from './lib/http'
     import { defaultSettings } from './lib/settings'
     import checkUpdate from './plugins/update'
     import { defineComponent } from 'vue'
-
-    type Device = {
-        name: string
-        adapter: string
-        ip: string
-        since: number
-    }
+    import type { Device, Host } from '@/types'
+    import type { ElectronAPI } from '@electron-toolkit/preload'
 
     type Release = {
         name: string
         url: string
-    }
-
-    type Host = {
-        ip: string
     }
 
     type Page = {
@@ -120,8 +100,6 @@
             name: 'Network',
         },
     ]
-
-    const deviceTimeout = 8000
 
     export default defineComponent({
         name: 'App',
@@ -142,14 +120,12 @@
             settings: defaultSettings,
             host: { ip: '' } as Host,
             m_devices: [] as Device[],
-            now: Date.now(),
             release: undefined as Release | undefined,
             show_device_picker: false,
-            tickerInterval: 0,
             loadPluginsAbortController: new AbortController(),
         }),
         computed: {
-            electron() {
+            electron(): ElectronAPI {
                 return (window as any).electron
             },
             version() {
@@ -157,14 +133,6 @@
             },
             pages() {
                 return fixed_pages.concat(this.plugins)
-            },
-            devices() {
-                return this.m_devices
-                    .filter((d) => !this.settings.adapter_blacklist.split(' ').includes(d.adapter))
-                    .filter((d) => this.now - d.since < deviceTimeout)
-            },
-            deviceSelected() {
-                return !!this.devices.find((d) => d.ip === this.host.ip)
             },
             reloadPlugins() {
                 return debounce(
@@ -190,67 +158,13 @@
             host(host) {
                 if (host.ip) {
                     this.saveHost(host)
-                    if (this.mounted && (!this.electron || this.deviceSelected)) {
+                    if (this.mounted) {
                         this.reloadPlugins()
                     }
                 }
             },
-            deviceSelected(selected) {
-                if (selected) {
-                    this.saveHost(this.host)
-                    this.loadPlugins()
-                }
-            },
-            settings({ port }) {
-                if (this.electron) {
-                    const { ipcRenderer } = this.electron
-                    ipcRenderer.removeAllListeners('search-devices')
-                    ipcRenderer.send('search-devices', port)
-
-                    type DeviceInfo = {
-                        type: string
-                        name: string
-                        appId: string
-                        version: string
-                    }
-
-                    type IPAddress = {
-                        ip: string
-                        adapter: string
-                    }
-
-                    type NewDevice = DeviceInfo & { addresses: IPAddress[] }
-
-                    ipcRenderer.on('search-devices', (_: void, newDevice: NewDevice) => {
-                        const { addresses, ...device } = newDevice
-                        const devices = this.devices
-                        const since = Date.now()
-                        for (const addr of addresses) {
-                            const obj: Device = {
-                                ...device,
-                                ...addr,
-                                since,
-                            }
-                            devices.push(obj)
-                        }
-                        const keys = ['name', 'adapter', 'ip', 'appId', 'version']
-                        this.m_devices = orderBy(
-                            uniqBy(devices, (elem) => JSON.stringify(pick(elem, keys))),
-                            keys,
-                        )
-                    })
-                }
-            },
-        },
-        beforeUnmount() {
-            clearInterval(this.tickerInterval)
         },
         created() {
-            if (this.electron) {
-                this.electron.ipcRenderer.removeAllListeners('search-devices')
-                this.tickerInterval = setInterval(this.ticker, deviceTimeout)
-            }
-
             const getStorageItem = (key: string) => {
                 const item = localStorage.getItem(key)
                 if (item)
@@ -281,9 +195,6 @@
         },
         methods: {
             open: open.bind(window),
-            ticker() {
-                this.now = Date.now()
-            },
             saveHost(host: Host) {
                 http.defaults.baseURL = `http://${host.ip}:${this.settings.port}`
                 localStorage.setItem('host', JSON.stringify(host))

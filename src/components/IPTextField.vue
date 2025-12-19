@@ -25,7 +25,8 @@
 
 <style lang="scss">
     .ip-field {
-        max-width: 230px;
+        min-width: 250px;
+        width: fit-content;
 
         .v-field__field > * {
             min-height: 0;

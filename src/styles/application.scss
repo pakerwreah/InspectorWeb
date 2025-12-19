@@ -117,6 +117,9 @@ html {
         min-width: 16px;
         background-color: #aaaaaa88;
         padding: 0 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .floating-buttons {
