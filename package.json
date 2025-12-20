@@ -22,7 +22,7 @@
     "eslint": "eslint ./src",
     "lint": "run-s type-check eslint",
     "electron:dev": "electron-vite dev",
-    "electron:build": "electron-vite build && electron-builder --publish never --config",
+    "electron:build": "electron-vite build && electron-builder --config",
     "electron:build:mac": "run-s electron:build -- --mac",
     "electron:build:win": "run-s electron:build -- --win",
     "electron:build:linux": "run-s electron:build -- --linux"

@@ -32,7 +32,7 @@ jobs:
       - name: Build
         run: |
           npm ci
-          npm run electron:build
+          npm run electron:build -- -mwl --publish never
 
       - name: Upload
         uses: softprops/action-gh-release@v2
