@@ -11,9 +11,9 @@ on:
 env:
   CSC_LINK: ${{ secrets.CSC_LINK }}
   CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-  APPLE_API_KEY:  ${{ secrets.APPLE_API_KEY }}
-  APPLE_API_KEY_ID:  ${{ secrets.APPLE_API_KEY_ID }}
-  APPLE_API_ISSUER:  ${{ secrets.APPLE_API_ISSUER }}
+  APPLE_API_KEY: ${{ github.workspace }}/apple_api_key.p8
+  APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+  APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
 
 jobs:
   build:
@@ -22,6 +22,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Set up Apple API Key file
+        run: |
+          cat << 'EOF' > "$APPLE_API_KEY"
+          ${{ secrets.APPLE_API_KEY }}
+          EOF
 
       - name: Build
         run: |
