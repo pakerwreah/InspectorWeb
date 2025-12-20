@@ -1,14 +1,20 @@
 productName: Inspector
-appId: br.newm.inspector
+appId: br.pakerwreah.inspector
+files: out/**
+directories:
+  output: dist_electron
 
 mac:
-  # TODO icon: src/assets/icon.icns
   category: public.app-category.developer-tools
+  target:
+    - dmg
 
 linux:
-  # TODO icon: src/assets/icon.png
   category: Development
+  target:
+    - AppImage
+    - deb
 
 win:
-  # TODO icon: src/assets/icon.ico
-  artifactName: ${productName}-Setup-${version}.${ext}
+  target:
+    - portable

@@ -1,6 +1,12 @@
 {
   "name": "inspector",
   "version": "2.0.1",
+  "author": {
+    "name": "Carlos Enumo",
+    "email": "paker_wreah@hotmail.com",
+    "url": "https://github.com/pakerwreah/InspectorWeb"
+  },
+  "description": "Tool to inspect SQLite databases and intercept network requests from mobile applications.",
   "private": true,
   "type": "module",
   "engines": {
@@ -16,7 +22,10 @@
     "lint": "eslint . --cache",
     "lint:fix": "eslint . --fix --cache",
     "electron:dev": "electron-vite dev",
-    "electron:build": "electron-vite build"
+    "electron:build": "electron-vite build && electron-builder --config",
+    "electron:build:mac": "npm run electron:build -- --mac",
+    "electron:build:win": "npm run electron:build -- --win",
+    "electron:build:linux": "npm run electron:build -- --linux"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -47,6 +56,7 @@
     "@vue/eslint-config-typescript": "^14.6.0",
     "@vue/tsconfig": "^0.8.1",
     "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",
     "eslint-plugin-vue": "~10.5.1",
@@ -64,9 +74,6 @@
   "overrides": {
     "@types/splitpanes": {
       "vue": "^3.0.0"
-    },
-    "vue-cli-plugin-electron-builder": {
-      "electron-builder": "^26.0.12"
     }
   }
 }

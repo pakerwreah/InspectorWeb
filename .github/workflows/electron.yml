@@ -1,6 +1,19 @@
 name: Electron CI
 
-on: [ workflow_dispatch ]
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (e.g. v1.2.3)
+        required: true
+        type: string
+
+env:
+  CSC_LINK: ${{ secrets.CSC_LINK }}
+  CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+  APPLE_API_KEY:  ${{ secrets.APPLE_API_KEY }}
+  APPLE_API_KEY_ID:  ${{ secrets.APPLE_API_KEY_ID }}
+  APPLE_API_ISSUER:  ${{ secrets.APPLE_API_ISSUER }}
 
 jobs:
   build:
@@ -8,19 +21,23 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Build
         run: |
-          npm install
-          npm run electron:build -- -mwl -p never
+          npm ci
+          npm run electron:build
 
       - name: Upload
         working-directory: dist_electron
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          tag_name="${GITHUB_REF##*/}"
-          hub release edit -a $(find . -maxdepth 1 -type f -name "*.exe" -print) -m "" "$tag_name"
-          hub release edit -a $(find . -maxdepth 1 -type f -name "*.dmg" -print) -m "" "$tag_name"
-          hub release edit -a $(find . -maxdepth 1 -type f -name "*.snap" -print) -m "" "$tag_name"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          draft: true
+          fail_on_unmatched_files: true
+          preserve_order: true
+          files: |
+            *.dmg 
+            *.exe
+            *.deb
+            *.AppImage
