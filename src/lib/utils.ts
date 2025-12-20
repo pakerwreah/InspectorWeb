@@ -9,7 +9,7 @@ export function isPlainObject(obj: any): obj is Record<string, any> {
     )
 }
 
-export function deepToRaw<T extends {}>(value: T): T {
+export function deepToRaw<T extends object>(value: T): T {
     const objectIterator = (input: any): any => {
         if (Array.isArray(input)) {
             return input.map((item) => objectIterator(item))

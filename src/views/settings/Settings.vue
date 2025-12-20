@@ -1,7 +1,7 @@
 <template>
-    <v-dialog max-width="600" v-model="open" attach>
+    <v-dialog max-width="600" v-model="m_open" attach>
         <v-card>
-            <DialogHeader title="Settings" @close="open = false" />
+            <DialogHeader title="Settings" @close="m_open = false" />
 
             <v-card-text class="pa-0 settings-content relative">
                 <v-row class="absolute-expand">
@@ -10,7 +10,7 @@
                     </v-col>
                     <v-col>
                         <v-container v-if="selected[0] === 'Theme'">
-                            <v-radio-group v-model="settings.dark_mode" inline color="accent">
+                            <v-radio-group v-model="m_settings.dark_mode" inline color="accent">
                                 <v-radio
                                     label="Light"
                                     value="light"
@@ -29,7 +29,7 @@
                         </v-container>
                         <v-container v-if="selected[0] === 'Network'">
                             <v-switch
-                                v-model="settings.network.sleep"
+                                v-model="m_settings.network.sleep"
                                 label="Disconnect when Network is not selected"
                                 color="accent"
                                 hide-details
@@ -38,19 +38,24 @@
                                 <small>(This helps to prevent unnecessary memory and cpu usage)</small>
                             </v-col>
                             <v-switch
-                                v-model="settings.network.sort_params"
+                                v-model="m_settings.network.sort_params"
                                 label="Sort request parameters"
                                 color="accent"
                                 hide-details
                             />
                             <v-row class="mt-2">
                                 <v-col>
-                                    <v-text-field label="Port" v-model="settings.port" v-mask="'#####'" hide-details />
+                                    <v-text-field
+                                        label="Port"
+                                        v-model="m_settings.port"
+                                        v-mask="'#####'"
+                                        hide-details
+                                    />
                                 </v-col>
                                 <v-col>
                                     <v-text-field
                                         label="Clear requests after"
-                                        v-model="settings.network.limit"
+                                        v-model="m_settings.network.limit"
                                         v-mask="'#####'"
                                         hide-details
                                     />
@@ -60,7 +65,7 @@
                                 <v-col>
                                     <v-text-field
                                         label="Adapter blacklist"
-                                        v-model="settings.adapter_blacklist"
+                                        v-model="m_settings.adapter_blacklist"
                                         hide-details
                                     />
                                 </v-col>
@@ -91,22 +96,28 @@
         },
         mixins: [theme],
         props: {
-            modelValue: Boolean,
+            open: {
+                type: Boolean,
+                required: true,
+            },
             settings: {
                 type: Object as PropType<Settings>,
                 required: true,
             },
         },
-        data: () => ({
-            selected: [pages[0]] as Page[],
-        }),
+        data() {
+            return {
+                selected: [pages[0]] as Page[],
+                m_settings: this.settings,
+            }
+        },
         computed: {
-            open: {
+            m_open: {
                 get() {
-                    return this.modelValue
+                    return this.open
                 },
                 set(value: boolean) {
-                    this.$emit('update:modelValue', value)
+                    this.$emit('update:open', value)
                 },
             },
             supportsThemeDetection() {
@@ -115,10 +126,19 @@
             pages() {
                 return pages
             },
+            settings_dark_mode() {
+                return this.settings.dark_mode
+            },
         },
         watch: {
-            'settings.dark_mode': {
-                handler(value) {
+            m_settings: {
+                handler(value: Settings) {
+                    this.$emit('update:settings', value)
+                },
+                deep: true,
+            },
+            settings_dark_mode: {
+                handler(value: Settings['dark_mode']) {
                     if (value === 'auto') {
                         this.dark_mode = !!darkModeMatcher?.matches
                     } else {

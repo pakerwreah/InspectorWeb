@@ -77,6 +77,9 @@
                     .filter((d) => !this.settings.adapter_blacklist.split(' ').includes(d.adapter))
                     .filter((d) => this.now - d.since < deviceTimeout)
             },
+            port() {
+                return this.settings.port
+            },
         },
         watch: {
             selected() {
@@ -88,9 +91,9 @@
                     this.selected = this.devices.find((d) => d.ip === ip)
                 }
             },
-            settings: {
+            port: {
                 immediate: true,
-                handler({ port }: Settings) {
+                handler(port: Settings['port']) {
                     const { ipcRenderer } = this.electron
                     ipcRenderer.removeAllListeners('search-devices')
                     ipcRenderer.send('search-devices-init', port)

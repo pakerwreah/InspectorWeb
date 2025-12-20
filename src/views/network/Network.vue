@@ -256,7 +256,7 @@
                 })
             })
         },
-        beforeDestroy() {
+        beforeUnmount() {
             document.removeEventListener('keydown', this.toggleSearch)
 
             this.disconnect()

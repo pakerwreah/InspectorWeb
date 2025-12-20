@@ -61,7 +61,7 @@
                 this.getDatabases()
             })
         },
-        beforeDestroy() {
+        beforeUnmount() {
             this.m_id++
         },
         methods: {

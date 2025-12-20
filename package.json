@@ -19,13 +19,13 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "lint": "eslint . --cache",
-    "lint:fix": "eslint . --fix --cache",
+    "eslint": "eslint ./src",
+    "lint": "run-s type-check eslint",
     "electron:dev": "electron-vite dev",
     "electron:build": "electron-vite build && electron-builder --config",
-    "electron:build:mac": "npm run electron:build -- --mac",
-    "electron:build:win": "npm run electron:build -- --win",
-    "electron:build:linux": "npm run electron:build -- --linux"
+    "electron:build:mac": "run-s electron:build -- --mac",
+    "electron:build:win": "run-s electron:build -- --win",
+    "electron:build:linux": "run-s electron:build -- --linux"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -70,10 +70,5 @@
     "vite-plugin-vuetify": "^2.1.2",
     "vue-tsc": "^3.1.5",
     "vuetify": "^3.11.2"
-  },
-  "overrides": {
-    "@types/splitpanes": {
-      "vue": "^3.0.0"
-    }
   }
 }

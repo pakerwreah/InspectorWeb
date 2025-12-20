@@ -61,7 +61,7 @@
                 </div>
             </v-row>
         </v-footer>
-        <Settings v-model="settings_popup" v-model:settings="settings" />
+        <Settings v-model:open="settings_popup" v-model:settings="settings" />
     </v-app>
 </template>
 
@@ -142,6 +142,9 @@
                     this.electron ? 100 : 1500,
                 )
             },
+            settings_port() {
+                return this.settings.port
+            },
         },
         watch: {
             current_page(page) {
@@ -155,13 +158,11 @@
                     localStorage.setItem('settings', JSON.stringify(this.settings))
                 }
             },
-            host(host) {
-                if (host.ip) {
-                    this.saveHost(host)
-                    if (this.mounted) {
-                        this.reloadPlugins()
-                    }
-                }
+            host() {
+                this.updateBaseURL()
+            },
+            settings_port() {
+                this.updateBaseURL()
             },
         },
         created() {
@@ -195,9 +196,15 @@
         },
         methods: {
             open: open.bind(window),
-            saveHost(host: Host) {
-                http.defaults.baseURL = `http://${host.ip}:${this.settings.port}`
-                localStorage.setItem('host', JSON.stringify(host))
+            updateBaseURL() {
+                if (this.host.ip && this.settings.port) {
+                    http.defaults.baseURL = `http://${this.host.ip}:${this.settings.port}`
+                    localStorage.setItem('host', JSON.stringify(this.host))
+
+                    if (this.mounted) {
+                        this.reloadPlugins()
+                    }
+                }
             },
             async loadPlugins() {
                 try {
