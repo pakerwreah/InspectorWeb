@@ -75,7 +75,7 @@
     import { defaultsDeep, debounce } from 'lodash'
     import http from './lib/http'
     import { defaultSettings } from './lib/settings'
-    import checkUpdate from './plugins/update'
+    import { checkUpdate } from './plugins/update'
     import { defineComponent } from 'vue'
     import type { Device, Host } from '@/types'
     import type { ElectronAPI } from '@electron-toolkit/preload'
