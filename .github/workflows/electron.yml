@@ -29,9 +29,9 @@ jobs:
           npm run electron:build
 
       - name: Upload
-        working-directory: dist_electron
         uses: softprops/action-gh-release@v2
         with:
+          working_directory: dist_electron
           tag_name: ${{ inputs.version }}
           draft: true
           fail_on_unmatched_files: true
